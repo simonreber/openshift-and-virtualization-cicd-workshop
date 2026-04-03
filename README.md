@@ -150,7 +150,7 @@ done
 
 ### Step 4 — Configure GitHub Credentials (for PaC)
 
-Create a GitHub Personal Access Token (PAT) with `repo` and `admin:repo_hook` scopes:
+Create a GitHub Personal Access Token (PAT). When using legacy PAT, select `repo` and `admin:repo_hook` scopes. When using the fine-grained tokens we need to apply `Contents`, `Commit statuses`, `Deployments` and `Webhooks` with `Read and Write` permissions set. Important, only apply it to the working repository to avoid exposing the scope to other non-related repositories.
 
 ```bash
 oc create secret generic github-token \
