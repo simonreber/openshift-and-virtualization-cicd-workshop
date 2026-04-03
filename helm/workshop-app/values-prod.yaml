@@ -1,0 +1,30 @@
+# Production environment overrides
+# Image tag updated automatically by Tekton on vX.Y.Z release tags
+
+replicaCount: 2
+
+image:
+  tag: "latest"   # overwritten by pipeline with release tag, e.g. v1.0.0
+
+route:
+  enabled: true
+  host: ""   # OpenShift auto-generates: workshop-app-workshop-prod.<cluster-domain>
+  tls:
+    enabled: true
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+
+resources:
+  requests:
+    cpu: "100m"
+    memory: "128Mi"
+  limits:
+    cpu: "500m"
+    memory: "256Mi"
+
+env:
+  - name: APP_ENV
+    value: "production"
+
+podAnnotations:
+  environment: prod

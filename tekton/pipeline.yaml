@@ -1,0 +1,132 @@
+---
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: workshop-build-pipeline
+  namespace: workshop-ci
+  labels:
+    app.kubernetes.io/part-of: workshop
+spec:
+  description: >-
+    Workshop CI pipeline:
+      1. Clone the repository
+      2. Build the Hugo static site
+      3. Build & push container image to Quay
+      4. Update Helm values with new image tag → triggers ArgoCD sync
+
+  params:
+    - name: git-url
+      type: string
+      description: Source git repository URL
+    - name: git-revision
+      type: string
+      default: main
+      description: Git revision (branch, tag, or SHA) to build
+    - name: image-registry
+      type: string
+      default: quay.io
+      description: Container image registry host
+    - name: image-repo
+      type: string
+      description: "Registry repository path (e.g. myorg/workshop-app)"
+    - name: image-tag
+      type: string
+      description: Tag for the built container image (typically git SHA or tag)
+    - name: helm-values-file
+      type: string
+      default: helm/workshop-app/values-dev.yaml
+      description: Helm values file to update with new image tag
+    - name: helm-values-file-branch
+      type: string
+      default: main
+      description: Branch to commit Helm values update to
+    - name: github-repo-url
+      type: string
+      description: HTTPS URL of the GitHub repo (for git push of values update)
+
+  workspaces:
+    - name: shared-workspace
+      description: Shared PVC workspace for all pipeline steps
+    - name: quay-credentials
+      description: Docker config secret for Quay registry push
+    - name: github-token
+      description: Secret with GitHub PAT for pushing updated Helm values
+
+  tasks:
+    # ── Task 1: Clone ────────────────────────────────────────────────────────
+    - name: clone
+      taskRef:
+        resolver: cluster
+        params:
+          - name: kind
+            value: task
+          - name: name
+            value: git-clone
+          - name: namespace
+            value: openshift-pipelines
+      params:
+        - name: url
+          value: $(params.git-url)
+        - name: revision
+          value: $(params.git-revision)
+        - name: deleteExisting
+          value: "true"
+      workspaces:
+        - name: output
+          workspace: shared-workspace
+
+    # ── Task 2: Build Hugo site ──────────────────────────────────────────────
+    - name: build-hugo
+      taskRef:
+        kind: Task
+        name: build-hugo
+      runAfter:
+        - clone
+      params:
+        - name: source-dir
+          value: page
+      workspaces:
+        - name: source
+          workspace: shared-workspace
+
+    # ── Task 3: Build & push container image ────────────────────────────────
+    - name: build-push-image
+      taskRef:
+        kind: Task
+        name: buildah-build-push
+      runAfter:
+        - build-hugo
+      params:
+        - name: IMAGE
+          value: $(params.image-registry)/$(params.image-repo):$(params.image-tag)
+        - name: DOCKERFILE
+          value: Dockerfile
+        - name: CONTEXT
+          value: .
+      workspaces:
+        - name: source
+          workspace: shared-workspace
+        - name: dockerconfig
+          workspace: quay-credentials
+
+    # ── Task 4: Update Helm values → triggers ArgoCD ────────────────────────
+    - name: update-image-tag
+      taskRef:
+        kind: Task
+        name: update-helm-values
+      runAfter:
+        - build-push-image
+      params:
+        - name: git-url
+          value: $(params.github-repo-url)
+        - name: git-branch
+          value: $(params.helm-values-file-branch)
+        - name: values-file
+          value: $(params.helm-values-file)
+        - name: image-tag
+          value: $(params.image-tag)
+      workspaces:
+        - name: source
+          workspace: shared-workspace
+        - name: github-token
+          workspace: github-token

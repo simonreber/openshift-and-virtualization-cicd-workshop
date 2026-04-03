@@ -1,0 +1,18 @@
+# Test environment overrides
+# Image tag updated automatically by Tekton on v*-rc* git tags
+
+replicaCount: 1
+
+image:
+  tag: "latest"   # overwritten by pipeline with rc tag, e.g. v1.0.0-rc1
+
+route:
+  enabled: true
+  host: ""   # OpenShift auto-generates: workshop-app-workshop-test.<cluster-domain>
+
+env:
+  - name: APP_ENV
+    value: "test"
+
+podAnnotations:
+  environment: test

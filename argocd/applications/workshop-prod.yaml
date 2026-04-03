@@ -1,0 +1,53 @@
+---
+# ArgoCD Application — workshop-prod
+# Image tag is updated in values-prod.yaml when a vX.Y.Z release tag is pushed.
+# selfHeal is intentionally left true but you may set it false for production
+# to prevent automatic rollback of hotfixes applied directly.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: workshop-app-prod
+  namespace: openshift-gitops
+  labels:
+    app.kubernetes.io/part-of: workshop
+    environment: prod
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: workshop
+
+  source:
+    repoURL: "https://github.com/YOUR_GITHUB_ORG/YOUR_GITHUB_REPO"
+    targetRevision: main
+    path: helm/workshop-app
+    helm:
+      valueFiles:
+        - values.yaml
+        - values-prod.yaml
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: workshop-prod
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 5m
+
+  revisionHistoryLimit: 10
+
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas

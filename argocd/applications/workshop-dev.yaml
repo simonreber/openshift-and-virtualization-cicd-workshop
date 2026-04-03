@@ -1,0 +1,57 @@
+---
+# ArgoCD Application — workshop-dev
+# Watches main branch, auto-syncs on every push.
+# Image tag is updated in values-dev.yaml by the Tekton pipeline.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: workshop-app-dev
+  namespace: openshift-gitops
+  labels:
+    app.kubernetes.io/part-of: workshop
+    environment: dev
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    # Keep last 5 revisions in ArgoCD history
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  project: workshop
+
+  source:
+    repoURL: "https://github.com/YOUR_GITHUB_ORG/YOUR_GITHUB_REPO"
+    targetRevision: main
+    path: helm/workshop-app
+    helm:
+      # Base values + environment-specific override
+      valueFiles:
+        - values.yaml
+        - values-dev.yaml
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: workshop-dev
+
+  syncPolicy:
+    automated:
+      prune: true        # Remove resources deleted from git
+      selfHeal: true     # Revert manual changes to match git
+    syncOptions:
+      - CreateNamespace=false    # Namespace created by tekton/namespaces.yaml
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+  revisionHistoryLimit: 5
+
+  # Health checks
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas   # Allow HPA to manage replicas

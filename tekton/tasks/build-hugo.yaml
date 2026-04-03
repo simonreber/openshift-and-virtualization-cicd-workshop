@@ -1,0 +1,40 @@
+---
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: build-hugo
+  namespace: workshop-ci
+  labels:
+    app.kubernetes.io/part-of: workshop
+spec:
+  description: >-
+    Builds a Hugo static site from source. Uses the quay.io/sreber84/hugo image
+    which bundles Hugo + Git. Output is written to the shared workspace under
+    the 'public/' subdirectory.
+  params:
+    - name: source-dir
+      type: string
+      default: "page"
+      description: Sub-directory within the workspace containing the Hugo source
+    - name: output-dir
+      type: string
+      default: "public"
+      description: Directory (relative to source-dir) where Hugo writes generated files
+    - name: hugo-args
+      type: string
+      default: "--minify"
+      description: Additional arguments to pass to hugo build command
+  workspaces:
+    - name: source
+      description: Workspace containing the cloned source repository
+  steps:
+    - name: build
+      image: quay.io/sreber84/hugo:latest
+      workingDir: $(workspaces.source.path)/$(params.source-dir)
+      command:
+        - hugo
+      args:
+        - $(params.hugo-args)
+      env:
+        - name: HUGO_ENV
+          value: production

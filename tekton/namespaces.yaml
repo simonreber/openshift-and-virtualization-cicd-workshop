@@ -1,0 +1,36 @@
+---
+# Namespace for CI pipeline workloads
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: workshop-ci
+  labels:
+    app.kubernetes.io/part-of: workshop
+    argocd.argoproj.io/managed-by: openshift-gitops
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: workshop-dev
+  labels:
+    app.kubernetes.io/part-of: workshop
+    environment: dev
+    argocd.argoproj.io/managed-by: openshift-gitops
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: workshop-test
+  labels:
+    app.kubernetes.io/part-of: workshop
+    environment: test
+    argocd.argoproj.io/managed-by: openshift-gitops
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: workshop-prod
+  labels:
+    app.kubernetes.io/part-of: workshop
+    environment: prod
+    argocd.argoproj.io/managed-by: openshift-gitops

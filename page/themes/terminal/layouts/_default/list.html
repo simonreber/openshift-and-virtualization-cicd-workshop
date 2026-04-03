@@ -1,0 +1,30 @@
+{{ define "main" }}
+<div class="list-header">
+  <h1 class="list-title">{{ .Title | default "Workshop Docs" }}</h1>
+  <p class="list-desc"><span class="comment"># Follow the modules in order to complete the workshop</span></p>
+</div>
+
+<div class="posts-list">
+  {{ range (where .Site.RegularPages "Section" "posts") }}
+  <article class="list-item">
+    <div class="list-item-left">
+      <span class="list-num">{{ printf "%02d" .Weight }}</span>
+      <div class="list-item-body">
+        <a href="{{ .Permalink }}" class="list-item-title">{{ .Title }}</a>
+        {{ with .Description }}
+        <p class="list-item-desc">{{ . }}</p>
+        {{ end }}
+      </div>
+    </div>
+    <div class="list-item-right">
+      <span class="list-date">{{ .Date.Format "2006-01-02" }}</span>
+      {{ with .Params.tags }}
+      <span class="list-tags">
+        {{ range . }}<span class="tag">{{ . }}</span>{{ end }}
+      </span>
+      {{ end }}
+    </div>
+  </article>
+  {{ end }}
+</div>
+{{ end }}

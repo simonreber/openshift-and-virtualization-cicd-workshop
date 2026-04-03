@@ -1,0 +1,16 @@
+apiVersion: v2
+name: workshop-app
+description: >-
+  Hugo static site served via httpd, deployed by ArgoCD as part of the
+  OpenShift Pipelines & GitOps workshop.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - workshop
+  - openshift
+  - tekton
+  - argocd
+  - hugo
+maintainers:
+  - name: Workshop Team

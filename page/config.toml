@@ -1,0 +1,50 @@
+baseURL = "/"
+languageCode = "en-us"
+title = "OpenShift CI/CD Workshop"
+theme = "terminal"
+paginate = 10
+enableRobotsTXT = true
+enableEmoji = true
+
+[params]
+  author = "Workshop Team"
+  description = "Hands-on CI/CD with Tekton, Pipelines as Code & ArgoCD on Red Hat OpenShift"
+  keywords = ["openshift", "tekton", "argocd", "gitops", "cicd", "kubernetes"]
+  # shown in the terminal prompt in the header
+  prompt = "workshop@openshift"
+  # shown next to the prompt
+  hostname = "~"
+  # tagline under the site title
+  tagline = "Tekton · Pipelines as Code · ArgoCD · OpenShift"
+  showReadingTime = true
+  showWordCount = false
+
+[menu]
+  [[menu.main]]
+    identifier = "home"
+    name = "~ home"
+    url = "/"
+    weight = 1
+  [[menu.main]]
+    identifier = "posts"
+    name = "/ docs"
+    url = "/posts/"
+    weight = 2
+  [[menu.main]]
+    identifier = "about"
+    name = "/ about"
+    url = "/about/"
+    weight = 3
+
+[markup]
+  [markup.highlight]
+    style = "monokai"
+    lineNos = true
+    lineNumbersInTable = true
+    tabWidth = 2
+  [markup.goldmark.renderer]
+    unsafe = true
+
+[taxonomies]
+  tag = "tags"
+  category = "categories"

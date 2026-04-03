@@ -1,0 +1,31 @@
+<header class="site-header">
+  <div class="container">
+    <div class="header-top">
+      <div class="terminal-bar">
+        <span class="dot red"></span>
+        <span class="dot yellow"></span>
+        <span class="dot green"></span>
+        <span class="terminal-title">workshop@openshift — bash — 80×24</span>
+      </div>
+    </div>
+    <div class="header-body">
+      <div class="prompt-line">
+        <span class="prompt-user">{{ .Site.Params.prompt }}</span><span class="prompt-at">@</span><span class="prompt-host">{{ .Site.Params.hostname }}</span><span class="prompt-sep">:~$</span>
+        <a href="{{ "/" | relURL }}" class="site-title-link">
+          <span class="site-title typed" data-text="{{ .Site.Title }}">{{ .Site.Title }}</span>
+        </a>
+      </div>
+      <div class="tagline">
+        <span class="comment"># {{ .Site.Params.tagline }}</span>
+      </div>
+    </div>
+    <nav class="site-nav">
+      {{ range .Site.Menus.main }}
+      <a href="{{ .URL | relURL }}"
+         class="nav-link{{ if $.IsMenuCurrent "main" . }} active{{ end }}">
+        <span class="nav-bracket">[</span>{{ .Name }}<span class="nav-bracket">]</span>
+      </a>
+      {{ end }}
+    </nav>
+  </div>
+</header>

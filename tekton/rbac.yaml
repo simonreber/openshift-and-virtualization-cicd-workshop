@@ -1,0 +1,85 @@
+---
+# ServiceAccount used by Tekton pipeline in workshop-ci
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: pipeline
+  namespace: workshop-ci
+---
+# Allow pipeline SA to edit workshop-ci
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: pipeline-edit-ci
+  namespace: workshop-ci
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: edit
+subjects:
+  - kind: ServiceAccount
+    name: pipeline
+    namespace: workshop-ci
+---
+# Allow pipeline SA to push to Quay (secret access)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: pipeline-secret-ci
+  namespace: workshop-ci
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:image-builder
+subjects:
+  - kind: ServiceAccount
+    name: pipeline
+    namespace: workshop-ci
+---
+# Grant pipeline SA ability to update helm values in git
+# (pipeline does a git push — needs a secret, not a k8s role)
+# The github-token secret is used directly in the task step.
+---
+# Allow ArgoCD to manage dev/test/prod namespaces
+# (handled via argocd/appproject.yaml, but RBAC here for completeness)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: gitops-manage-dev
+  namespace: workshop-dev
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: admin
+subjects:
+  - kind: ServiceAccount
+    name: openshift-gitops-argocd-application-controller
+    namespace: openshift-gitops
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: gitops-manage-test
+  namespace: workshop-test
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: admin
+subjects:
+  - kind: ServiceAccount
+    name: openshift-gitops-argocd-application-controller
+    namespace: openshift-gitops
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: gitops-manage-prod
+  namespace: workshop-prod
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: admin
+subjects:
+  - kind: ServiceAccount
+    name: openshift-gitops-argocd-application-controller
+    namespace: openshift-gitops

@@ -1,0 +1,119 @@
+{{ define "main" }}
+<section class="hero">
+  <div class="hero-ascii">
+<pre class="ascii-art">
+  ██████╗ ██████╗ ███████╗███╗   ██╗███████╗██╗  ██╗██╗███████╗████████╗
+ ██╔═══██╗██╔══██╗██╔════╝████╗  ██║██╔════╝██║  ██║██║██╔════╝╚══██╔══╝
+ ██║   ██║██████╔╝█████╗  ██╔██╗ ██║███████╗███████║██║█████╗     ██║
+ ██║   ██║██╔═══╝ ██╔══╝  ██║╚██╗██║╚════██║██╔══██║██║██╔══╝     ██║
+ ╚██████╔╝██║     ███████╗██║ ╚████║███████║██║  ██║██║██║        ██║
+  ╚═════╝ ╚═╝     ╚══════╝╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝╚═╝╚═╝        ╚═╝
+</pre>
+    <div class="hero-badges">
+      <span class="badge badge-red">OpenShift Pipelines</span>
+      <span class="badge badge-blue">ArgoCD GitOps</span>
+      <span class="badge badge-green">Pipelines as Code</span>
+      <span class="badge badge-yellow">Helm</span>
+    </div>
+  </div>
+
+  <div class="hero-output">
+    <div class="output-line"><span class="output-key">OS</span><span class="output-sep">:</span><span class="output-val">Red Hat OpenShift 4.x</span></div>
+    <div class="output-line"><span class="output-key">CI</span><span class="output-sep">:</span><span class="output-val">Tekton Pipelines + Pipelines as Code</span></div>
+    <div class="output-line"><span class="output-key">CD</span><span class="output-sep">:</span><span class="output-val">ArgoCD (OpenShift GitOps)</span></div>
+    <div class="output-line"><span class="output-key">App</span><span class="output-sep">:</span><span class="output-val">Hugo → httpd → Quay.io → OpenShift</span></div>
+    <div class="output-line"><span class="output-key">Envs</span><span class="output-sep">:</span><span class="output-val">workshop-dev · workshop-test · workshop-prod</span></div>
+    <div class="output-line"><span class="output-key">Trigger</span><span class="output-sep">:</span><span class="output-val">git push → pipeline → image → sync</span></div>
+  </div>
+</section>
+
+<section class="pipeline-vis">
+  <h2 class="section-title"><span class="comment">##</span> CI/CD Flow</h2>
+  <div class="pipeline-flow">
+    <div class="flow-step">
+      <div class="flow-icon">⌨</div>
+      <div class="flow-label">git push</div>
+      <div class="flow-sub">GitHub</div>
+    </div>
+    <div class="flow-arrow">──▶</div>
+    <div class="flow-step">
+      <div class="flow-icon">⚡</div>
+      <div class="flow-label">PaC</div>
+      <div class="flow-sub">Webhook</div>
+    </div>
+    <div class="flow-arrow">──▶</div>
+    <div class="flow-step">
+      <div class="flow-icon">🔧</div>
+      <div class="flow-label">Tekton</div>
+      <div class="flow-sub">Build + Push</div>
+    </div>
+    <div class="flow-arrow">──▶</div>
+    <div class="flow-step">
+      <div class="flow-icon">📦</div>
+      <div class="flow-label">Quay.io</div>
+      <div class="flow-sub">Image Registry</div>
+    </div>
+    <div class="flow-arrow">──▶</div>
+    <div class="flow-step">
+      <div class="flow-icon">🔄</div>
+      <div class="flow-label">ArgoCD</div>
+      <div class="flow-sub">Auto Sync</div>
+    </div>
+    <div class="flow-arrow">──▶</div>
+    <div class="flow-step highlight-step">
+      <div class="flow-icon">🚀</div>
+      <div class="flow-label">Deployed!</div>
+      <div class="flow-sub">OpenShift</div>
+    </div>
+  </div>
+</section>
+
+<section class="promo-flow">
+  <h2 class="section-title"><span class="comment">##</span> Promotion Strategy</h2>
+  <div class="env-track">
+    <div class="env-box env-dev">
+      <div class="env-name">DEV</div>
+      <div class="env-ns">workshop-dev</div>
+      <div class="env-trigger"><code>git push main</code></div>
+    </div>
+    <div class="env-arrow">──────▶</div>
+    <div class="env-box env-test">
+      <div class="env-name">TEST</div>
+      <div class="env-ns">workshop-test</div>
+      <div class="env-trigger"><code>git tag v1.0.0-rc1</code></div>
+    </div>
+    <div class="env-arrow">──────▶</div>
+    <div class="env-box env-prod">
+      <div class="env-name">PROD</div>
+      <div class="env-ns">workshop-prod</div>
+      <div class="env-trigger"><code>git tag v1.0.0</code></div>
+    </div>
+  </div>
+</section>
+
+<section class="posts-section">
+  <h2 class="section-title"><span class="comment">##</span> Workshop Modules</h2>
+  <div class="posts-grid">
+    {{ range (where .Site.RegularPages "Section" "posts") }}
+    <article class="post-card">
+      <div class="post-card-header">
+        <span class="post-number">{{ printf "%02d" .Weight }}</span>
+        <a href="{{ .Permalink }}" class="post-title">{{ .Title }}</a>
+      </div>
+      {{ with .Description }}
+      <p class="post-desc">{{ . }}</p>
+      {{ end }}
+      <div class="post-meta">
+        <span class="post-date">{{ .Date.Format "2006-01-02" }}</span>
+        {{ with .Params.tags }}
+        <span class="post-tags">
+          {{ range . }}<span class="tag">{{ . }}</span>{{ end }}
+        </span>
+        {{ end }}
+      </div>
+      <a href="{{ .Permalink }}" class="post-read">read more →</a>
+    </article>
+    {{ end }}
+  </div>
+</section>
+{{ end }}

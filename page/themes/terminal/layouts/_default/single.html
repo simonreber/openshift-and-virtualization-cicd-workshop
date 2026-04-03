@@ -1,0 +1,41 @@
+{{ define "main" }}
+<article class="single-post">
+  <header class="post-header">
+    <div class="breadcrumb">
+      <a href="{{ "/" | relURL }}">~</a>
+      <span>/</span>
+      <a href="{{ "/posts/" | relURL }}">docs</a>
+      <span>/</span>
+      <span>{{ .Title | lower | urlize }}</span>
+    </div>
+    <h1 class="post-title-large">{{ .Title }}</h1>
+    {{ with .Description }}
+    <p class="post-description">{{ . }}</p>
+    {{ end }}
+    <div class="post-meta-bar">
+      <span>📅 {{ .Date.Format "January 2, 2006" }}</span>
+      {{ if .Params.tags }}
+      <span>🏷
+        {{ range .Params.tags }}<span class="tag">{{ . }}</span>{{ end }}
+      </span>
+      {{ end }}
+      {{ if .ReadingTime }}
+      <span>⏱ {{ .ReadingTime }} min read</span>
+      {{ end }}
+    </div>
+  </header>
+
+  <div class="post-content">
+    {{ .Content }}
+  </div>
+
+  <div class="post-nav">
+    {{ with .PrevInSection }}
+    <a class="post-nav-prev" href="{{ .Permalink }}">← {{ .Title }}</a>
+    {{ end }}
+    {{ with .NextInSection }}
+    <a class="post-nav-next" href="{{ .Permalink }}">{{ .Title }} →</a>
+    {{ end }}
+  </div>
+</article>
+{{ end }}

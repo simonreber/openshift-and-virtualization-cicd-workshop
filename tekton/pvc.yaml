@@ -1,0 +1,13 @@
+---
+# Shared workspace PVC for Tekton pipeline steps
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: workshop-pipeline-pvc
+  namespace: workshop-ci
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi

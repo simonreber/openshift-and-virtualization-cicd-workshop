@@ -1,0 +1,62 @@
+---
+# ArgoCD AppProject — scopes what the workshop applications can do
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: workshop
+  namespace: openshift-gitops
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  description: "Workshop — OpenShift Pipelines & GitOps demo"
+
+  # Allow syncing from this GitHub repo (update to your fork URL)
+  sourceRepos:
+    - "https://github.com/YOUR_GITHUB_ORG/YOUR_GITHUB_REPO"
+    - "https://github.com/YOUR_GITHUB_ORG/YOUR_GITHUB_REPO.git"
+
+  # Allow deploying to workshop namespaces only
+  destinations:
+    - namespace: workshop-dev
+      server: https://kubernetes.default.svc
+    - namespace: workshop-test
+      server: https://kubernetes.default.svc
+    - namespace: workshop-prod
+      server: https://kubernetes.default.svc
+
+  # Permitted cluster-scoped resources (none needed for this app)
+  clusterResourceWhitelist: []
+
+  # Permitted namespace-scoped resources
+  namespaceResourceWhitelist:
+    - group: ""
+      kind: ConfigMap
+    - group: ""
+      kind: Service
+    - group: ""
+      kind: ServiceAccount
+    - group: "apps"
+      kind: Deployment
+    - group: "route.openshift.io"
+      kind: Route
+    - group: "networking.k8s.io"
+      kind: Ingress
+
+  # Sync windows — allow all syncs (remove to restrict prod deploys to a window)
+  syncWindows: []
+
+  # Roles within the project
+  roles:
+    - name: read-only
+      description: Read-only access to workshop apps
+      policies:
+        - p, proj:workshop:read-only, applications, get, workshop/*, allow
+      groups:
+        - workshop-viewers
+    - name: deployer
+      description: Can sync workshop apps
+      policies:
+        - p, proj:workshop:deployer, applications, sync, workshop/*, allow
+        - p, proj:workshop:deployer, applications, get, workshop/*, allow
+      groups:
+        - workshop-deployers

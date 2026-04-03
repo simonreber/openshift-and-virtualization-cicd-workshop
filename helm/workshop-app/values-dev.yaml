@@ -1,0 +1,18 @@
+# Dev environment overrides
+# Image tag updated automatically by Tekton on every push to main
+
+replicaCount: 1
+
+image:
+  tag: "latest"
+
+route:
+  enabled: true
+  host: ""   # OpenShift auto-generates: workshop-app-workshop-dev.<cluster-domain>
+
+env:
+  - name: APP_ENV
+    value: "development"
+
+podAnnotations:
+  environment: dev

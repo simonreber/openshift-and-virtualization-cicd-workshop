@@ -1,0 +1,84 @@
+---
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: update-helm-values
+  namespace: workshop-ci
+  labels:
+    app.kubernetes.io/part-of: workshop
+spec:
+  description: >-
+    Updates the image tag in a Helm values file and commits+pushes the change
+    back to the git repository. ArgoCD watches the repo and will auto-sync
+    when it detects the new tag in the values file.
+  params:
+    - name: git-url
+      type: string
+      description: Full HTTPS URL of the git repository
+    - name: git-branch
+      type: string
+      default: main
+      description: Branch to commit the values update to
+    - name: values-file
+      type: string
+      description: Path (relative to repo root) of the Helm values file to update
+    - name: image-tag
+      type: string
+      description: New image tag to write into the values file
+    - name: git-user-name
+      type: string
+      default: "Workshop Bot"
+      description: Git author name for the automated commit
+    - name: git-user-email
+      type: string
+      default: "workshop-bot@openshift.local"
+      description: Git author email for the automated commit
+  workspaces:
+    - name: source
+      description: Workspace where the repo is already cloned
+    - name: github-token
+      description: >-
+        Secret containing a GITHUB_TOKEN key with a Personal Access Token
+        that has write access to the repository.
+  steps:
+    - name: update-and-push
+      image: quay.io/sreber84/hugo:latest   # contains git
+      workingDir: $(workspaces.source.path)
+      script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+
+        # Read GitHub token
+        GITHUB_TOKEN=$(cat $(workspaces.github-token.path)/token)
+
+        # Configure git
+        git config user.name "$(params.git-user-name)"
+        git config user.email "$(params.git-user-email)"
+
+        # Embed token into remote URL for push authentication
+        REPO_URL="$(params.git-url)"
+        AUTHED_URL="${REPO_URL/https:\/\//https://x-access-token:${GITHUB_TOKEN}@}"
+        git remote set-url origin "$AUTHED_URL"
+
+        # Ensure we are on the right branch
+        git fetch origin $(params.git-branch)
+        git checkout $(params.git-branch)
+        git pull origin $(params.git-branch)
+
+        VALUES_FILE="$(params.values-file)"
+        NEW_TAG="$(params.image-tag)"
+
+        echo "Updating $VALUES_FILE with tag: $NEW_TAG"
+
+        # Use sed to replace the tag: line in the values file
+        sed -i "s|^  tag:.*|  tag: \"${NEW_TAG}\"|" "$VALUES_FILE"
+
+        # Show diff
+        git diff "$VALUES_FILE"
+
+        # Commit and push
+        git add "$VALUES_FILE"
+        git commit -m "chore: update image tag to ${NEW_TAG} [skip ci]"
+        git push origin $(params.git-branch)
+
+        echo "Successfully pushed new image tag to git."

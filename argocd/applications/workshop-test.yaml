@@ -1,0 +1,52 @@
+---
+# ArgoCD Application — workshop-test
+# Image tag is updated in values-test.yaml when a v*-rc* git tag is pushed.
+# ArgoCD watches main branch (where values-test.yaml lives) and auto-syncs.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: workshop-app-test
+  namespace: openshift-gitops
+  labels:
+    app.kubernetes.io/part-of: workshop
+    environment: test
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: workshop
+
+  source:
+    repoURL: "https://github.com/YOUR_GITHUB_ORG/YOUR_GITHUB_REPO"
+    targetRevision: main
+    path: helm/workshop-app
+    helm:
+      valueFiles:
+        - values.yaml
+        - values-test.yaml
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: workshop-test
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+  revisionHistoryLimit: 5
+
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas

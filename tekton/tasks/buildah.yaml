@@ -1,0 +1,97 @@
+---
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: buildah-build-push
+  namespace: workshop-ci
+  labels:
+    app.kubernetes.io/part-of: workshop
+spec:
+  description: >-
+    Builds a container image using Buildah and pushes it to a container registry.
+    Uses the built-in privileged buildah image available in OpenShift Pipelines.
+  params:
+    - name: IMAGE
+      type: string
+      description: Full image reference to build and push (e.g. quay.io/org/repo:tag)
+    - name: DOCKERFILE
+      type: string
+      default: ./Dockerfile
+      description: Path to the Dockerfile relative to the context directory
+    - name: CONTEXT
+      type: string
+      default: .
+      description: Build context directory (relative to workspace root)
+    - name: BUILD_EXTRA_ARGS
+      type: string
+      default: ""
+      description: Extra build arguments for buildah bud
+    - name: PUSH_EXTRA_ARGS
+      type: string
+      default: ""
+      description: Extra arguments for buildah push
+    - name: SKIP_PUSH
+      type: string
+      default: "false"
+      description: Skip the push step (useful for testing)
+    - name: FORMAT
+      type: string
+      default: "oci"
+      description: Image format (oci or docker)
+  workspaces:
+    - name: source
+      description: Workspace containing source code and Dockerfile
+    - name: dockerconfig
+      description: >-
+        OCI config JSON for registry authentication.
+        Must contain a .dockerconfigjson key.
+      optional: true
+  results:
+    - name: IMAGE_DIGEST
+      description: Digest of the built image
+    - name: IMAGE_URL
+      description: URL of the built image
+  steps:
+    - name: build
+      image: registry.redhat.io/rhel8/buildah:latest
+      workingDir: $(workspaces.source.path)/$(params.CONTEXT)
+      securityContext:
+        privileged: true
+      env:
+        - name: DOCKER_CONFIG
+          value: /workspace/dockerconfig
+      script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+
+        # Set up registry credentials if provided
+        if [ "$(workspaces.dockerconfig.bound)" = "true" ]; then
+          if [ -f "$(workspaces.dockerconfig.path)/.dockerconfigjson" ]; then
+            mkdir -p /root/.docker
+            cp "$(workspaces.dockerconfig.path)/.dockerconfigjson" /root/.docker/config.json
+            echo "Registry credentials configured."
+          fi
+        fi
+
+        echo "Building image: $(params.IMAGE)"
+        buildah --storage-driver=vfs bud \
+          --format="$(params.FORMAT)" \
+          $(params.BUILD_EXTRA_ARGS) \
+          --no-cache \
+          -f "$(params.DOCKERFILE)" \
+          -t "$(params.IMAGE)" \
+          .
+
+        [ "$(params.SKIP_PUSH)" = "true" ] && echo "Skipping push." && exit 0
+
+        echo "Pushing image: $(params.IMAGE)"
+        buildah --storage-driver=vfs push \
+          $(params.PUSH_EXTRA_ARGS) \
+          --digestfile /tmp/image-digest \
+          "$(params.IMAGE)" \
+          "docker://$(params.IMAGE)"
+
+        DIGEST=$(cat /tmp/image-digest)
+        echo "Image digest: $DIGEST"
+        echo -n "$DIGEST" | tee $(results.IMAGE_DIGEST.path)
+        echo -n "$(params.IMAGE)" | tee $(results.IMAGE_URL.path)
