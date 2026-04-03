@@ -1,4 +1,4 @@
-# 🚀 OpenShift Pipelines & GitOps Workshop
+# 🚀 OpenShift Pipelines & GitOps Workshop - Work in Progress
 
 > **A hands-on workshop demonstrating Tekton (OpenShift Pipelines) + Pipelines as Code + ArgoCD (OpenShift GitOps) on Red Hat OpenShift.**
 
