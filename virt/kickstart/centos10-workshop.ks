@@ -36,10 +36,10 @@ selinux --enforcing
 firewall --enabled --service=ssh
 
 # ── Root password ─────────────────────────────────────────────────────────
-# Password: <to-be-defined>
-# Generated with: python3 -c "import crypt; print(crypt.crypt('<to-be-defined>', crypt.mksalt(crypt.METHOD_SHA512)))"
+# Password: <to-be-added>
+# Generated with: python3 -c "import crypt; print(crypt.crypt('<to-be-added>', crypt.mksalt(crypt.METHOD_SHA512)))"
 # Replace with your own hash in production!
-rootpw --iscrypted <to-be-added-here>
+rootpw --iscrypted <to-be-added>
 
 # ── System services ───────────────────────────────────────────────────────
 services --enabled=sshd,chronyd

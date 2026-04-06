@@ -82,14 +82,14 @@ Make sure the PAT has `repo` (write) scope and hasn't expired.
 ### Application stuck in OutOfSync
 
 ```bash
-oc get application workshop-app-dev -n openshift-gitops -o yaml \
+oc get application workshop-app-dev -n workshop-gitops -o yaml \
   | grep -A 20 "status:"
 ```
 
 ```bash
 # Force refresh (re-read Git)
 oc annotate application workshop-app-dev \
-  -n openshift-gitops \
+  -n workshop-gitops \
   argocd.argoproj.io/refresh=hard
 ```
 
@@ -108,16 +108,16 @@ oc get events -n workshop-dev --sort-by=.lastTimestamp | tail -20
 
 ```bash
 # Check ArgoCD repo connection
-oc exec -n openshift-gitops \
-  deployment/openshift-gitops-server \
+oc exec -n workshop-gitops \
+  deployment/workshop-gitops-server \
   -- argocd repo list
 ```
 
 If it shows an error, re-add the credentials:
 
 ```bash
-oc exec -n openshift-gitops \
-  deployment/openshift-gitops-server \
+oc exec -n workshop-gitops \
+  deployment/workshop-gitops-server \
   -- argocd repo add \
      "https://github.com/${GITHUB_ORG}/${GITHUB_REPO}" \
      --username "${GITHUB_ORG}" \

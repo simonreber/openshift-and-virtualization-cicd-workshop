@@ -1,191 +1,186 @@
 ---
-title: "04 · Pipelines as Code"
-description: "Configure Pipelines as Code to automatically trigger the Tekton pipeline from GitHub push and tag events."
+title: "04 · Triggering Pipelines"
+description: "Trigger Tekton PipelineRuns manually using oc create, understand the pipeline flow, and promote builds across environments."
 date: 2024-01-04
 weight: 4
-tags: ["pac", "pipelines-as-code", "github", "webhook"]
+tags: ["tekton", "pipelinerun", "ci", "trigger"]
 ---
 
-## What Is Pipelines as Code?
+## Why Manual Triggers?
 
-**Pipelines as Code (PaC)** is the bridge between your Git repository and Tekton. Instead of configuring webhooks and TriggerTemplates manually, PaC:
+This workshop triggers Tekton pipelines **manually** using `oc create -f`. This is an intentional choice:
 
-1. Reads pipeline definitions directly from the **`.tekton/` directory** in your repository
-2. Listens to GitHub (or GitLab / Bitbucket) webhook events
-3. Creates a `PipelineRun` automatically when an event matches the annotations in your pipeline file
+- Zero additional setup (no webhooks, no tokens, no GitHub App registration)
+- Transparent — you see exactly what parameters are passed
+- Easy to debug — the PipelineRun YAML is fully readable
+- Identical to what an automated trigger would create under the hood
 
-This means your pipeline definition is **version-controlled alongside your application code** — no more config drift between what's in Git and what's deployed on the cluster.
-
----
-
-## How PaC Works
-
-```
-.tekton/pipeline.yaml          (in your GitHub repo)
-     │
-     │  annotations:
-     │    on-event: "[push]"
-     │    on-target-branch: "[main, refs/tags/v*]"
-     │
-     ▼
-PaC Controller (running in pipelines-as-code namespace)
-     │
-     │  GitHub webhook → match event → instantiate PipelineRun
-     ▼
-PipelineRun created in workshop-ci
-     │
-     │  Reports status back to GitHub commit/PR as a check
-     ▼
-GitHub commit shows ✅ or ❌
-```
-
-PaC also posts the pipeline status as a **GitHub commit check** — you get native CI feedback directly on your commits and pull requests.
+Automated triggering via **Pipelines as Code** will be covered in a future module once the core workflow is solid.
 
 ---
 
-## Step 1 — Generate a Webhook Secret
+## The PipelineRun Templates
+
+Three PipelineRun templates live in `tekton/pipelineruns/`:
+
+| File | Environment | Git revision | Helm values file |
+|------|-------------|-------------|-----------------|
+| `run-dev.yaml` | `workshop-dev` | `main` | `values-dev.yaml` |
+| `run-test.yaml` | `workshop-test` | `v*-rc*` tag | `values-test.yaml` |
+| `run-prod.yaml` | `workshop-prod` | `v*.*.*` tag | `values-prod.yaml` |
+
+Each file contains all parameters pre-filled by `setup.sh`. You `oc create -f` them directly.
+
+---
+
+## Step 1 — Trigger a Dev Build
 
 ```bash
-WEBHOOK_SECRET=$(openssl rand -hex 20)
-echo "Webhook secret: $WEBHOOK_SECRET"
-# Save this — you'll need it in GitHub too
+oc create -f tekton/pipelineruns/run-dev.yaml
+```
 
-# Create the secret on the cluster
-oc create secret generic github-webhook-secret \
-  --from-literal=secret="$WEBHOOK_SECRET" \
-  -n workshop-ci
+Watch it run:
+
+```bash
+# Quick status view
+oc get pipelineruns -n workshop-ci
+
+# Live watch
+oc get pipelineruns -n workshop-ci --watch
+
+# Full log stream (tkn CLI)
+tkn pipelinerun logs -n workshop-ci --last -f
+
+# Full log stream (oc only)
+oc logs -n workshop-ci \
+  -l tekton.dev/pipeline=workshop-build-pipeline \
+  --all-containers --prefix -f
+```
+
+Each stage maps to a Tekton Task running as a Pod:
+
+```
+workshop-dev-xxxxx-clone-xxxxx        ← git-clone task
+workshop-dev-xxxxx-build-hugo-xxxxx   ← build-hugo task
+workshop-dev-xxxxx-build-push-xxxxx   ← buildah task
+workshop-dev-xxxxx-update-image-xxxxx ← update-helm-values task
 ```
 
 ---
 
-## Step 2 — Apply the PaC Repository Resource
-
-The `Repository` CRD tells PaC which GitHub repository to watch and where to find the credentials.
+## Step 2 — Verify the Build Succeeded
 
 ```bash
-# Substitute your values
-sed -e "s|YOUR_GITHUB_ORG|${GITHUB_ORG}|g" \
-    -e "s|YOUR_GITHUB_REPO|${GITHUB_REPO}|g" \
-    tekton/pac/repository.yaml | oc apply -f -
+oc get pipelineruns -n workshop-ci \
+  -o custom-columns='NAME:.metadata.name,STATUS:.status.conditions[0].reason,TIME:.status.completionTime'
 ```
 
-Verify:
-
-```bash
-oc get repository -n workshop-ci
-```
+Expected:
 
 ```
-NAME           URL                                             SUCCEEDED
-workshop-app   https://github.com/your-org/your-repo          True
+NAME                STATUS      TIME
+workshop-dev-xxxxx  Succeeded   2024-01-01T12:00:00Z
 ```
 
 ---
 
-## Step 3 — Get the Webhook Endpoint
+## Step 3 — Confirm ArgoCD Deployed the New Image
+
+Once the PipelineRun succeeds, the `update-helm-values` task commits a new `image.tag` to `helm/workshop-app/values-dev.yaml`. ArgoCD detects this within ~3 minutes and deploys.
 
 ```bash
-PAC_ROUTE=$(oc get route -n pipelines-as-code \
-  pipelines-as-code-controller \
-  -o jsonpath='{.spec.host}')
-echo "Webhook URL: https://${PAC_ROUTE}"
+# Check ArgoCD sync status
+oc get application workshop-app-dev -n workshop-gitops
+
+# Watch the rollout in the dev namespace
+oc rollout status deployment/workshop-app -n workshop-dev
+
+# Get the running image tag
+oc get deployment workshop-app -n workshop-dev \
+  -o jsonpath='{.spec.template.spec.containers[0].image}{"\n"}'
 ```
 
 ---
 
-## Step 4 — Configure the GitHub Webhook
+## Step 4 — Promote to Test
 
-1. Open your GitHub repository → **Settings** → **Webhooks** → **Add webhook**
-2. Fill in:
-   - **Payload URL**: `https://<PAC_ROUTE>` (from previous step)
-   - **Content type**: `application/json`
-   - **Secret**: the `$WEBHOOK_SECRET` value from Step 1
-   - **Which events?** → select **Let me select individual events**:
-     - ✅ Push
-     - ✅ Pull requests
-3. Click **Add webhook**
-
-GitHub will send a ping event — you should see a green ✅ tick next to the webhook.
-
-> 💡 If the webhook shows an error, check the PaC controller logs:
-> ```bash
-> oc logs -n pipelines-as-code \
->   deployment/pipelines-as-code-controller -f
-> ```
-
----
-
-## Step 5 — Update the PipelineRun Template
-
-The `.tekton/pipeline.yaml` file needs your Quay organisation substituted:
+When you are happy with dev, create a release candidate tag and trigger the test pipeline:
 
 ```bash
-sed -i "s|YOUR_QUAY_ORG|${QUAY_ORG}|g" .tekton/pipeline.yaml
+# Tag the commit
+git tag v1.0.0-rc1
+git push origin v1.0.0-rc1
 
-git add .tekton/pipeline.yaml
-git commit -m "chore: set quay org in pac pipeline template"
-git push origin main
-```
+# Trigger the test pipeline with the rc tag
+RC_TAG=v1.0.0-rc1
+sed -e "s|v1.0.0-rc1|${RC_TAG}|g" \
+    tekton/pipelineruns/run-test.yaml | oc create -f -
 
----
-
-## Step 6 — Verify the First Auto-Triggered Run
-
-After pushing the commit above, PaC should detect the push and create a PipelineRun:
-
-```bash
-# Watch for the PipelineRun to appear
+# Watch
 oc get pipelineruns -n workshop-ci --watch
 ```
 
-You should also see a **pending → running → succeeded** check on your GitHub commit.
-
-To view logs:
-
-```bash
-# Using tkn (if installed)
-tkn pipelinerun logs -n workshop-ci --last -f
-
-# Using oc
-LAST_PR=$(oc get pipelinerun -n workshop-ci \
-  --sort-by=.metadata.creationTimestamp \
-  -o jsonpath='{.items[-1].metadata.name}')
-oc logs -n workshop-ci -l \
-  tekton.dev/pipelineRun=$LAST_PR --all-containers -f
-```
+ArgoCD syncs `values-test.yaml` → deploys `v1.0.0-rc1` to `workshop-test`.
 
 ---
 
-## Understanding the PaC Annotations
+## Step 5 — Promote to Production
 
-The annotations in `.tekton/pipeline.yaml` control what triggers a PipelineRun:
+After test validation:
 
-```yaml
-# Trigger only on push events (not pull_request, etc.)
-pipelinesascode.tekton.dev/on-event: "[push]"
+```bash
+git tag v1.0.0
+git push origin v1.0.0
 
-# Target: main branch AND any v* tag
-pipelinesascode.tekton.dev/on-target-branch: "[main, refs/tags/v*]"
+RELEASE_TAG=v1.0.0
+sed -e "s|v1.0.0|${RELEASE_TAG}|g" \
+    tekton/pipelineruns/run-prod.yaml | oc create -f -
 
-# Prune old runs — keep max 5
-pipelinesascode.tekton.dev/max-keep-runs: "5"
+oc get pipelineruns -n workshop-ci --watch
 ```
 
-We have **three separate PipelineRun definitions** in `.tekton/pipeline.yaml`:
+ArgoCD syncs `values-prod.yaml` → deploys `v1.0.0` to `workshop-prod`.
 
-| PipelineRun | Branch filter | Helm values file | Environment |
-|-------------|--------------|-----------------|-------------|
-| `workshop-build` | `main` | `values-dev.yaml` | dev |
-| `workshop-build-rc` | `refs/tags/v*-rc*` | `values-test.yaml` | test |
-| `workshop-build-release` | `refs/tags/v*.*.*` | `values-prod.yaml` | prod |
+---
+
+## Re-running a PipelineRun
+
+Because PipelineRuns are immutable once created, to re-run you always `oc create` a new one. The `generateName` field ensures each run gets a unique name:
+
+```bash
+# Re-trigger dev (new PipelineRun every time)
+oc create -f tekton/pipelineruns/run-dev.yaml
+```
+
+Old runs are automatically pruned by Tekton once the count exceeds the configured limit.
+
+---
+
+## Useful Commands
+
+```bash
+# List all PipelineRuns
+oc get pipelineruns -n workshop-ci
+
+# Delete all completed/failed runs
+oc delete pipelineruns -n workshop-ci \
+  --field-selector=status.conditions[0].reason=Failed
+
+# Describe a specific run (events, parameters, workspace bindings)
+oc describe pipelinerun <name> -n workshop-ci
+
+# TaskRun view (individual steps)
+oc get taskruns -n workshop-ci \
+  -l tekton.dev/pipelineRun=<pipelinerun-name>
+```
 
 ---
 
 ## Summary
 
-- ✅ PaC `Repository` resource configured
-- ✅ GitHub webhook set up and verified
-- ✅ First automated PipelineRun triggered by git push
-- ✅ Pipeline status visible as a GitHub commit check
+- ✅ PipelineRun templates pre-filled by `setup.sh` for dev, test, and prod
+- ✅ Dev build triggered with a single `oc create -f`
+- ✅ ArgoCD automatically deploys after each successful build
+- ✅ Promotion to test and prod via git tags + `oc create -f`
 
 Continue to **[Module 05 → ArgoCD & GitOps](/posts/05-argocd-gitops/)**.

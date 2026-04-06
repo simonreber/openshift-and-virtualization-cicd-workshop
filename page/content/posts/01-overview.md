@@ -27,7 +27,7 @@ GitHub Repo
     │  push / tag event
     ▼
 Pipelines as Code (PaC)
-    │  matches .tekton/pipeline.yaml
+    │  webhook trigger (future: PaC)
     │  creates PipelineRun
     ▼
 Tekton Pipeline (workshop-ci namespace)
@@ -38,7 +38,7 @@ Tekton Pipeline (workshop-ci namespace)
                               │
                               │ git commit detected
                               ▼
-                        ArgoCD (openshift-gitops)
+                        ArgoCD (workshop-gitops)
                               │
                     ┌─────────┼──────────┐
                     ▼         ▼          ▼
@@ -53,7 +53,7 @@ Tekton Pipeline (workshop-ci namespace)
 | Term | What it is |
 |------|-----------|
 | **Tekton** | Cloud-native CI framework; pipelines are Kubernetes CRDs |
-| **PaC** | Pipelines as Code — reads `.tekton/` from your repo, reacts to GitHub events |
+| **PipelineRun** | Manual trigger via `oc create -f tekton/pipelineruns/` |
 | **ArgoCD** | GitOps CD tool; continuously reconciles cluster state with Git |
 | **Helm** | Kubernetes package manager; templates our manifests |
 | **Hugo** | Fast static site generator written in Go |
@@ -86,7 +86,7 @@ oc get csv -n openshift-operators \
 Expected output:
 ```
 openshift-pipelines-operator-rh.v1.x.x   Succeeded
-openshift-gitops-operator.v1.x.x          Succeeded
+workshop-gitops-operator.v1.x.x          Succeeded
 ```
 
 If missing, install from **OperatorHub** in the OpenShift Console, or:
@@ -111,11 +111,11 @@ oc apply -f - <<EOF
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
 metadata:
-  name: openshift-gitops-operator
+  name: workshop-gitops-operator
   namespace: openshift-operators
 spec:
   channel: latest
-  name: openshift-gitops-operator
+  name: workshop-gitops-operator
   source: redhat-operators
   sourceNamespace: openshift-marketplace
 EOF

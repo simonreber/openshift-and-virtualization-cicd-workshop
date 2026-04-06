@@ -1,0 +1,61 @@
+---
+# PipelineRun — dev build
+#
+# Trigger manually to build and deploy to workshop-dev.
+# Usage:
+#   oc create -f tekton/pipelineruns/run-dev.yaml
+#
+# Or with a specific git revision:
+#   GIT_REV=$(git rev-parse HEAD)
+#   IMAGE_TAG=$(git rev-parse --short HEAD)
+#   sed -e "s|__GIT_REVISION__|${GIT_REV}|g" \
+#       -e "s|__IMAGE_TAG__|${IMAGE_TAG}|g" \
+#       tekton/pipelineruns/run-dev.yaml | oc create -f -
+#
+# Variables substituted by setup.sh:
+#   YOUR_GITHUB_ORG, YOUR_GITHUB_REPO, YOUR_QUAY_ORG, YOUR_CLUSTER_DOMAIN
+#
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  generateName: workshop-dev-
+  namespace: workshop-ci
+  labels:
+    app.kubernetes.io/part-of: workshop
+    environment: dev
+spec:
+  pipelineRef:
+    name: workshop-build-pipeline
+
+  params:
+    - name: git-url
+      value: "https://github.com/YOUR_GITHUB_ORG/YOUR_GITHUB_REPO"
+    - name: git-revision
+      # Replace with a branch name, tag, or full commit SHA
+      # Default: main
+      value: "main"
+    - name: image-registry
+      value: "quay.io"
+    - name: image-repo
+      value: "YOUR_QUAY_ORG/workshop-app"
+    - name: image-tag
+      # Use git SHA for traceability. Replace at run time or hardcode a value.
+      # Example: value: "abc1234"
+      value: "dev-latest"
+    - name: github-repo-url
+      value: "https://github.com/YOUR_GITHUB_ORG/YOUR_GITHUB_REPO"
+    - name: helm-values-file
+      value: "helm/workshop-app/values-dev.yaml"
+    - name: helm-values-file-branch
+      value: "main"
+
+  workspaces:
+    - name: shared-workspace
+      persistentVolumeClaim:
+        claimName: workshop-pipeline-pvc
+    - name: quay-credentials
+      secret:
+        secretName: quay-credentials
+    - name: github-token
+      secret:
+        secretName: github-token

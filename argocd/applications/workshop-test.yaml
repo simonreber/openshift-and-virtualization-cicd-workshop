@@ -6,7 +6,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: workshop-app-test
-  namespace: openshift-gitops
+  namespace: workshop-gitops
   labels:
     app.kubernetes.io/part-of: workshop
     environment: test

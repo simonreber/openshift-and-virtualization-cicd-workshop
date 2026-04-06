@@ -20,8 +20,8 @@ The platform everything runs on. OpenShift is an enterprise Kubernetes distribut
 ### ⚡ Tekton (OpenShift Pipelines)
 Tekton is the CNCF standard for cloud-native CI. Pipelines, Tasks, and PipelineRuns are all Kubernetes Custom Resources — they live in your cluster alongside your application and are managed the same way.
 
-### 🔀 Pipelines as Code
-PaC is the GitOps approach to CI configuration. Your pipeline definitions live in `.tekton/` alongside your application code. When you push, PaC reads the definitions, matches them against the event, and creates a PipelineRun.
+### ⚡ Tekton Pipelines
+Tekton is a cloud-native CI framework built on Kubernetes CRDs. PipelineRuns are triggered manually with `oc create -f` from templates in `tekton/pipelineruns/`. Pipelines as Code (automatic webhook triggering) will be added in a future workshop iteration.
 
 ### 🔄 ArgoCD (OpenShift GitOps)
 ArgoCD implements the GitOps pattern for CD. Git is the single source of truth. ArgoCD continuously reconciles the cluster state against Git.

@@ -1,0 +1,154 @@
+---
+# ArgoCD — workshop-argocd
+#
+# A dedicated, minimal ArgoCD instance for the workshop.
+# Deployed in the workshop-gitops namespace.
+#
+# The OpenShift GitOps operator (already installed on the cluster)
+# watches for ArgoCD CRs and provisions the full ArgoCD stack
+# (server, repo-server, application-controller, dex, redis) automatically.
+#
+# Access:
+#   URL:      oc get route workshop-argocd-server -n workshop-gitops
+#   Password: oc extract secret/workshop-argocd-cluster -n workshop-gitops --to=-
+#
+apiVersion: argoproj.io/v1alpha1
+kind: ArgoCD
+metadata:
+  name: workshop-argocd
+  namespace: workshop-gitops
+  labels:
+    app.kubernetes.io/part-of: workshop
+spec:
+  # ── Server (UI + API) ──────────────────────────────────────────────────
+  server:
+    # Expose via an OpenShift Route (HTTP — accessible inside cluster)
+    # The operator creates the Route automatically.
+    route:
+      enabled: true
+      tls:
+        termination: reencrypt
+        insecureEdgeTerminationPolicy: Redirect
+    # Resource limits — keep it small for a workshop cluster
+    resources:
+      requests:
+        cpu: 125m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 256Mi
+
+  # ── Application Controller ─────────────────────────────────────────────
+  applicationInstanceLabelKey: app.kubernetes.io/instance
+
+  # ── Repo Server ───────────────────────────────────────────────────────
+  repo:
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 256Mi
+
+  # ── Redis ──────────────────────────────────────────────────────────────
+  redis:
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 200m
+        memory: 128Mi
+
+  # ── Dex (SSO) — use built-in OpenShift OAuth ──────────────────────────
+  sso:
+    provider: dex
+    dex:
+      openShiftOAuth: true
+      resources:
+        requests:
+          cpu: 50m
+          memory: 64Mi
+        limits:
+          cpu: 200m
+          memory: 128Mi
+
+  # ── RBAC — allow cluster-admin full access via OpenShift group ────────
+  rbac:
+    defaultPolicy: "role:readonly"
+    policy: |
+      g, system:cluster-admins, role:admin
+      g, cluster-admins, role:admin
+    scopes: "[groups]"
+
+  # ── Resource customisations ────────────────────────────────────────────
+  # Tell ArgoCD how to determine health of OpenShift/KubeVirt resources
+  resourceCustomizations: |
+    route.openshift.io/Route:
+      health.lua: |
+        hs = {}
+        hs.status = "Healthy"
+        hs.message = ""
+        if obj.status ~= nil then
+          if obj.status.ingress ~= nil then
+            for _, ingress in ipairs(obj.status.ingress) do
+              if ingress.conditions ~= nil then
+                for _, condition in ipairs(ingress.conditions) do
+                  if condition.type == "Admitted" and condition.status == "False" then
+                    hs.status = "Degraded"
+                    hs.message = condition.message
+                    return hs
+                  end
+                end
+              end
+            end
+          end
+        end
+        return hs
+
+    kubevirt.io/VirtualMachine:
+      health.lua: |
+        hs = {}
+        hs.status = "Progressing"
+        hs.message = "Waiting for VirtualMachine"
+        if obj.status ~= nil then
+          if obj.status.ready ~= nil and obj.status.ready == true then
+            hs.status = "Healthy"
+            hs.message = "VirtualMachine is ready"
+          elseif obj.status.printableStatus ~= nil then
+            hs.message = obj.status.printableStatus
+          end
+        end
+        return hs
+
+    cdi.kubevirt.io/DataVolume:
+      health.lua: |
+        hs = {}
+        hs.status = "Progressing"
+        hs.message = "Importing"
+        if obj.status ~= nil and obj.status.phase ~= nil then
+          if obj.status.phase == "Succeeded" then
+            hs.status = "Healthy"
+            hs.message = "Import complete"
+          elseif obj.status.phase == "Failed" then
+            hs.status = "Degraded"
+            hs.message = "Import failed"
+          else
+            hs.message = obj.status.phase
+          end
+        end
+        return hs
+
+  # ── Resource exclusions — skip noisy OpenShift resources ─────────────
+  resourceExclusions: |
+    - apiGroups:
+        - tekton.dev
+      clusters:
+        - "*"
+      kinds:
+        - TaskRun
+        - PipelineRun
+
+  # ── Global settings ────────────────────────────────────────────────────
+  globalProjects: []

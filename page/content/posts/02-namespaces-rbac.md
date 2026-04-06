@@ -17,7 +17,7 @@ We use four namespaces in this workshop:
 | `workshop-test` | Application deployed when a `v*-rc*` tag is pushed |
 | `workshop-prod` | Application deployed when a `v*.*.*` release tag is pushed |
 
-ArgoCD lives in its own `openshift-gitops` namespace (installed by the operator) and needs `admin`-level access to the three application namespaces.
+ArgoCD lives in its own `workshop-gitops` namespace (installed by the operator) and needs `admin`-level access to the three application namespaces.
 
 ---
 

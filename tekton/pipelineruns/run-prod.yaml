@@ -1,0 +1,54 @@
+---
+# PipelineRun — production release
+#
+# Trigger manually when you are ready to release to production.
+# Usage:
+#   RELEASE_TAG=v1.0.0
+#   sed -e "s|v1.0.0|${RELEASE_TAG}|g" \
+#       tekton/pipelineruns/run-prod.yaml | oc create -f -
+#
+# Variables substituted by setup.sh:
+#   YOUR_GITHUB_ORG, YOUR_GITHUB_REPO, YOUR_QUAY_ORG
+#
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  generateName: workshop-prod-
+  namespace: workshop-ci
+  labels:
+    app.kubernetes.io/part-of: workshop
+    environment: prod
+spec:
+  pipelineRef:
+    name: workshop-build-pipeline
+
+  params:
+    - name: git-url
+      value: "https://github.com/YOUR_GITHUB_ORG/YOUR_GITHUB_REPO"
+    - name: git-revision
+      # Replace with your release tag name, e.g. v1.0.0
+      value: "v1.0.0"
+    - name: image-registry
+      value: "quay.io"
+    - name: image-repo
+      value: "YOUR_QUAY_ORG/workshop-app"
+    - name: image-tag
+      # Use the release tag as image tag
+      value: "v1.0.0"
+    - name: github-repo-url
+      value: "https://github.com/YOUR_GITHUB_ORG/YOUR_GITHUB_REPO"
+    - name: helm-values-file
+      value: "helm/workshop-app/values-prod.yaml"
+    - name: helm-values-file-branch
+      value: "main"
+
+  workspaces:
+    - name: shared-workspace
+      persistentVolumeClaim:
+        claimName: workshop-pipeline-pvc
+    - name: quay-credentials
+      secret:
+        secretName: quay-credentials
+    - name: github-token
+      secret:
+        secretName: github-token

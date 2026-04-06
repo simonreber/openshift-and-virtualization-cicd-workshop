@@ -6,7 +6,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: AppProject
 metadata:
   name: workshop-virt
-  namespace: openshift-gitops
+  namespace: workshop-gitops
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:

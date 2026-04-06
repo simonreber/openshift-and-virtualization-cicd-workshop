@@ -53,8 +53,8 @@ roleRef:
   name: admin
 subjects:
   - kind: ServiceAccount
-    name: openshift-gitops-argocd-application-controller
-    namespace: openshift-gitops
+    name: workshop-argocd-argocd-application-controller
+    namespace: workshop-gitops
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -67,8 +67,8 @@ roleRef:
   name: admin
 subjects:
   - kind: ServiceAccount
-    name: openshift-gitops-argocd-application-controller
-    namespace: openshift-gitops
+    name: workshop-argocd-argocd-application-controller
+    namespace: workshop-gitops
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -81,5 +81,5 @@ roleRef:
   name: admin
 subjects:
   - kind: ServiceAccount
-    name: openshift-gitops-argocd-application-controller
-    namespace: openshift-gitops
+    name: workshop-argocd-argocd-application-controller
+    namespace: workshop-gitops

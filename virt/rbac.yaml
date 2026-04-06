@@ -11,8 +11,8 @@ roleRef:
   name: admin
 subjects:
   - kind: ServiceAccount
-    name: openshift-gitops-argocd-application-controller
-    namespace: openshift-gitops
+    name: workshop-argocd-argocd-application-controller
+    namespace: workshop-gitops
 ---
 # Allow the default SA in workshop-virt to pull from Quay
 # (needed for the kickstart-server Deployment)

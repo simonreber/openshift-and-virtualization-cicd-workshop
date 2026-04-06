@@ -6,7 +6,7 @@ metadata:
   name: workshop-ci
   labels:
     app.kubernetes.io/part-of: workshop
-    argocd.argoproj.io/managed-by: openshift-gitops
+    argocd.argoproj.io/managed-by: workshop-gitops
 ---
 apiVersion: v1
 kind: Namespace
@@ -15,7 +15,7 @@ metadata:
   labels:
     app.kubernetes.io/part-of: workshop
     environment: dev
-    argocd.argoproj.io/managed-by: openshift-gitops
+    argocd.argoproj.io/managed-by: workshop-gitops
 ---
 apiVersion: v1
 kind: Namespace
@@ -24,7 +24,7 @@ metadata:
   labels:
     app.kubernetes.io/part-of: workshop
     environment: test
-    argocd.argoproj.io/managed-by: openshift-gitops
+    argocd.argoproj.io/managed-by: workshop-gitops
 ---
 apiVersion: v1
 kind: Namespace
@@ -33,4 +33,4 @@ metadata:
   labels:
     app.kubernetes.io/part-of: workshop
     environment: prod
-    argocd.argoproj.io/managed-by: openshift-gitops
+    argocd.argoproj.io/managed-by: workshop-gitops

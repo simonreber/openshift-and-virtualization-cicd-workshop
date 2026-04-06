@@ -113,7 +113,7 @@ virtctl ssh root@centos-workshop -n workshop-virt
 
 ```bash
 # Both ArgoCD apps are Synced + Healthy
-oc get application -n openshift-gitops \
+oc get application -n workshop-gitops \
   -l app.kubernetes.io/part-of=workshop-virt
 
 # Expected:
@@ -225,7 +225,7 @@ This is expected if `selfHeal: false`. The VM's `runStrategy` may drift from Git
 # Option B: Add ignoreDifferences for runStrategy (already in the Application)
 
 # Option C: Force Git to be truth (re-syncs and starts VM)
-oc patch application centos-workshop-vm -n openshift-gitops \
+oc patch application centos-workshop-vm -n workshop-gitops \
   --type merge \
   -p '{"operation":{"initiatedBy":{"username":"admin"},"sync":{}}}'
 ```

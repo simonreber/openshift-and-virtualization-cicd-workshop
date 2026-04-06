@@ -1,0 +1,94 @@
+---
+# Grant the workshop ArgoCD application controller admin rights
+# over all workshop namespaces it needs to deploy into.
+#
+# The ArgoCD operator creates a ServiceAccount named:
+#   workshop-argocd-argocd-application-controller
+# in the workshop-gitops namespace.
+#
+# This SA needs admin access to every namespace that ArgoCD manages.
+
+# ── workshop-ci (Tekton pipeline namespace) ───────────────────────────────
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: workshop-argocd-admin
+  namespace: workshop-ci
+  labels:
+    app.kubernetes.io/part-of: workshop
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: admin
+subjects:
+  - kind: ServiceAccount
+    name: workshop-argocd-argocd-application-controller
+    namespace: workshop-gitops
+---
+# ── workshop-dev ──────────────────────────────────────────────────────────
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: workshop-argocd-admin
+  namespace: workshop-dev
+  labels:
+    app.kubernetes.io/part-of: workshop
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: admin
+subjects:
+  - kind: ServiceAccount
+    name: workshop-argocd-argocd-application-controller
+    namespace: workshop-gitops
+---
+# ── workshop-test ─────────────────────────────────────────────────────────
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: workshop-argocd-admin
+  namespace: workshop-test
+  labels:
+    app.kubernetes.io/part-of: workshop
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: admin
+subjects:
+  - kind: ServiceAccount
+    name: workshop-argocd-argocd-application-controller
+    namespace: workshop-gitops
+---
+# ── workshop-prod ─────────────────────────────────────────────────────────
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: workshop-argocd-admin
+  namespace: workshop-prod
+  labels:
+    app.kubernetes.io/part-of: workshop
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: admin
+subjects:
+  - kind: ServiceAccount
+    name: workshop-argocd-argocd-application-controller
+    namespace: workshop-gitops
+---
+# ── workshop-virt ─────────────────────────────────────────────────────────
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: workshop-argocd-admin
+  namespace: workshop-virt
+  labels:
+    app.kubernetes.io/part-of: workshop
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: admin
+subjects:
+  - kind: ServiceAccount
+    name: workshop-argocd-argocd-application-controller
+    namespace: workshop-gitops

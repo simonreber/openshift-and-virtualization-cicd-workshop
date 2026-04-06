@@ -1,0 +1,14 @@
+---
+# Dedicated namespace for the workshop ArgoCD instance.
+# We do NOT use the default openshift-gitops instance so the workshop
+# is fully self-contained and does not interfere with any other GitOps
+# workloads on the cluster.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: workshop-gitops
+  labels:
+    app.kubernetes.io/part-of: workshop
+    # This label is required so the OpenShift GitOps operator installs
+    # an ArgoCD instance when an ArgoCD CR is created in this namespace.
+    argocd.argoproj.io/managed-by-cluster-argocd: "true"

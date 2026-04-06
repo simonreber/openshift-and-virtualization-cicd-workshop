@@ -32,7 +32,7 @@ sed -e "s|YOUR_GITHUB_ORG|${GITHUB_ORG}|g" \
 ArgoCD will now sync the contents of `virt/vm/` to `workshop-virt`.
 
 ```bash
-oc get application centos-workshop-vm -n openshift-gitops --watch
+oc get application centos-workshop-vm -n workshop-gitops --watch
 ```
 
 ---
@@ -213,7 +213,7 @@ ArgoCD detects the change and applies the updated `VirtualMachine` spec. The VM 
 Watch ArgoCD sync:
 
 ```bash
-oc get application centos-workshop-vm -n openshift-gitops
+oc get application centos-workshop-vm -n workshop-gitops
 oc get vm -n workshop-virt --watch
 ```
 
@@ -256,7 +256,7 @@ git push origin main
 Watch ArgoCD sync the change:
 
 ```bash
-oc get application centos-workshop-vm -n openshift-gitops --watch
+oc get application centos-workshop-vm -n workshop-gitops --watch
 ```
 
 After sync, verify inside the VM:

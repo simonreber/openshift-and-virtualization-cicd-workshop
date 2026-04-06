@@ -3,10 +3,13 @@ title: "05 · ArgoCD & GitOps"
 description: "Configure the ArgoCD AppProject and Applications to automatically deploy new images to dev, test, and prod."
 date: 2024-01-05
 weight: 5
-tags: ["argocd", "gitops", "helm", "openshift-gitops"]
+tags: ["argocd", "gitops", "helm", "workshop-gitops"]
 ---
 
 ## What Is ArgoCD?
+
+> **Instance used in this workshop:** A dedicated ArgoCD instance (`workshop-argocd`) runs in the `workshop-gitops` namespace, provisioned by the OpenShift GitOps operator. We do **not** use the cluster-default `openshift-gitops` instance — this keeps the workshop fully self-contained.
+
 
 **ArgoCD** is a declarative GitOps continuous delivery tool for Kubernetes. Instead of pushing manifests to a cluster with `kubectl apply`, you declare the desired state in Git and ArgoCD continuously reconciles the live cluster state to match.
 
@@ -79,7 +82,7 @@ oc apply -f argocd/appproject.yaml
 Verify:
 
 ```bash
-oc get appproject workshop -n openshift-gitops
+oc get appproject workshop -n workshop-gitops
 ```
 
 The AppProject restricts ArgoCD to only deploy from your repo and only to the three workshop namespaces — defence in depth.
@@ -95,7 +98,7 @@ oc apply -f argocd/applications/
 Verify:
 
 ```bash
-oc get applications -n openshift-gitops
+oc get applications -n workshop-gitops
 ```
 
 ```
@@ -113,13 +116,13 @@ workshop-app-prod    Synced        Healthy
 
 ```bash
 # Get the ArgoCD URL
-echo "https://$(oc get route openshift-gitops-server \
-  -n openshift-gitops \
+echo "https://$(oc get route workshop-argocd-server \
+  -n workshop-gitops \
   -o jsonpath='{.spec.host}')"
 
 # Get the initial admin password
-oc extract secret/openshift-gitops-cluster \
-  -n openshift-gitops \
+oc extract secret/workshop-argocd-cluster \
+  -n workshop-gitops \
   --to=- 2>/dev/null
 ```
 
@@ -154,7 +157,7 @@ argocd repo add "https://github.com/${GITHUB_ORG}/${GITHUB_REPO}" \
 # Sync all three apps
 for APP in workshop-app-dev workshop-app-test workshop-app-prod; do
   oc patch application $APP \
-    -n openshift-gitops \
+    -n workshop-gitops \
     --type merge \
     -p '{"operation":{"initiatedBy":{"username":"admin"},"sync":{"syncStrategy":{"hook":{}}}}}'
 done
@@ -189,13 +192,13 @@ ArgoCD sees this change, re-renders the Deployment template, and applies it.
 
 ```bash
 # Get all app statuses
-oc get applications -n openshift-gitops -o wide
+oc get applications -n workshop-gitops -o wide
 
 # Describe an app
-oc describe application workshop-app-dev -n openshift-gitops
+oc describe application workshop-app-dev -n workshop-gitops
 
 # Manually sync
-oc patch application workshop-app-dev -n openshift-gitops \
+oc patch application workshop-app-dev -n workshop-gitops \
   --type merge \
   -p '{"operation":{"initiatedBy":{"username":"admin"},"sync":{}}}'
 

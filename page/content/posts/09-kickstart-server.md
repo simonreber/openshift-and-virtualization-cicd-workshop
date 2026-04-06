@@ -156,7 +156,7 @@ sed -e "s|YOUR_GITHUB_ORG|${GITHUB_ORG}|g" \
 Watch ArgoCD sync:
 
 ```bash
-oc get application kickstart-server -n openshift-gitops --watch
+oc get application kickstart-server -n workshop-gitops --watch
 ```
 
 Verify the deployment is running:

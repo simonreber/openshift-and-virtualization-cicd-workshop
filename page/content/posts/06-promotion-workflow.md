@@ -39,7 +39,7 @@ oc get pipelineruns -n workshop-ci \
   --sort-by=.metadata.creationTimestamp | tail -3
 
 # Check ArgoCD synced
-oc get application workshop-app-dev -n openshift-gitops \
+oc get application workshop-app-dev -n workshop-gitops \
   -o jsonpath='{.status.sync.status}{"\n"}'
 
 # Check pod is running
@@ -76,7 +76,7 @@ git tag v1.0.0-rc1
 git push origin v1.0.0-rc1
 ```
 
-This triggers the `workshop-build-rc` PipelineRun defined in `.tekton/pipeline.yaml`:
+Trigger the test pipeline manually:
 
 ```bash
 # Watch for the rc pipeline run
@@ -93,7 +93,7 @@ The pipeline will:
 Verify test deployment:
 
 ```bash
-oc get application workshop-app-test -n openshift-gitops \
+oc get application workshop-app-test -n workshop-gitops \
   -o jsonpath='{.status.sync.status}{"\n"}'
 
 echo "http://$(oc get route workshop-app \
@@ -122,7 +122,7 @@ This triggers `workshop-build-release`, which:
 oc get pipelineruns -n workshop-ci --watch
 
 # Verify prod
-oc get application workshop-app-prod -n openshift-gitops \
+oc get application workshop-app-prod -n workshop-gitops \
   -o jsonpath='{.status.sync.status}{"\n"}'
 
 echo "http://$(oc get route workshop-app \
