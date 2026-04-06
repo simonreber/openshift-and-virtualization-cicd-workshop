@@ -1,0 +1,79 @@
+---
+# NetworkAttachmentDefinition for the workshop VM
+#
+# We use the MASQUERADE interface type (pod network NAT) rather than a
+# dedicated Linux bridge. This is the simplest approach that works on
+# any OpenShift cluster without needing a pre-configured external bridge.
+#
+# With masquerade:
+#  - The VM gets an IP on the pod network (e.g. 10.0.2.x)
+#  - Outbound traffic is NAT-ed through the pod IP
+#  - The VM can reach the kickstart HTTP server URL via the Route
+#  - DHCP is provided by the virt-launcher pod's built-in DHCP
+#
+# NOTE: For production/advanced workshops you would use a Linux bridge
+# (cnv-bridge + OVS or Linux bridge) to give the VM a real network IP
+# visible outside the cluster. For this workshop, masquerade is sufficient
+# because:
+#  1. The kickstart URL is an OpenShift Route (externally reachable from pod network)
+#  2. Post-install SSH access is available via `virtctl ssh` or NodePort
+#
+# If your cluster has a pre-configured Linux bridge (e.g. br-workshop)
+# you can switch to the bridge NAD below instead.
+
+# ── Option A (DEFAULT): Pod network masquerade ────────────────────────────
+# No extra NAD needed — masquerade uses the pod network directly.
+# Reference in the VM spec as:
+#   networks:
+#     - name: default
+#       pod: {}
+#   interfaces:
+#     - name: default
+#       masquerade: {}
+
+# ── Option B: Linux bridge (advanced, requires bridge pre-configured on nodes)
+# Uncomment if you have a bridge named "br-workshop" on your compute nodes:
+#
+# apiVersion: "k8s.cni.cncf.io/v1"
+# kind: NetworkAttachmentDefinition
+# metadata:
+#   name: workshop-bridge-net
+#   namespace: workshop-virt
+#   annotations:
+#     k8s.v1.cni.cncf.io/resourceName: bridge.network.kubevirt.io/br-workshop
+# spec:
+#   config: |
+#     {
+#       "cniVersion": "0.3.1",
+#       "name": "workshop-bridge-net",
+#       "plugins": [
+#         {
+#           "type": "cnv-bridge",
+#           "bridge": "br-workshop"
+#         },
+#         {
+#           "type": "cnv-tuning"
+#         }
+#       ]
+#     }
+
+# ── NodePort Service for SSH access to the VM ─────────────────────────────
+# This exposes SSH from the VM via a NodePort so you can reach it without virtctl.
+# virtctl ssh is the preferred method but this is a useful backup.
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: centos-workshop-vm-ssh
+  namespace: workshop-virt
+  labels:
+    app.kubernetes.io/part-of: workshop-virt
+spec:
+  selector:
+    kubevirt.io/domain: centos-workshop
+  ports:
+    - name: ssh
+      port: 22
+      targetPort: 22
+      protocol: TCP
+  type: NodePort

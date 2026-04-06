@@ -1,0 +1,71 @@
+---
+# ArgoCD Application — centos-workshop-vm
+#
+# Deploys the VirtualMachine, DataVolume, NetworkAttachmentDefinition,
+# and supporting ConfigMap from the virt/vm/ directory.
+#
+# IMPORTANT NOTE ON ARGOCD + VIRTUAL MACHINES:
+# ArgoCD will sync the VirtualMachine spec from Git. If you manually
+# change the VM state (start/stop/migrate), ArgoCD will detect drift
+# and may try to revert it if selfHeal is true.
+#
+# For the workshop this is intentional — it demonstrates GitOps
+# managing infrastructure (VMs) just like applications.
+#
+# In production you would typically:
+#   - Set selfHeal: false for VMs that are manually managed post-provision
+#   - OR use ignoreDifferences to skip the running/stopped state
+#
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: centos-workshop-vm
+  namespace: openshift-gitops
+  labels:
+    app.kubernetes.io/part-of: workshop-virt
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: workshop-virt
+
+  source:
+    repoURL: "https://github.com/YOUR_GITHUB_ORG/YOUR_GITHUB_REPO"
+    targetRevision: main
+    path: virt/vm
+    directory:
+      recurse: false
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: workshop-virt
+
+  syncPolicy:
+    automated:
+      prune: true
+      # selfHeal: true — re-enables if VM is manually stopped or modified
+      selfHeal: false
+    syncOptions:
+      - CreateNamespace=false
+      - PrunePropagationPolicy=foreground
+      - RespectIgnoreDifferences=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 5m
+
+  revisionHistoryLimit: 10
+
+  # Ignore the VM's runtime running state — ArgoCD shouldn't fight
+  # with a running/stopped VM status
+  ignoreDifferences:
+    - group: kubevirt.io
+      kind: VirtualMachine
+      jsonPointers:
+        - /spec/runStrategy
+        - /status
+    - group: cdi.kubevirt.io
+      kind: DataVolume
+      jsonPointers:
+        - /status

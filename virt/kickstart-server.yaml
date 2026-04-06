@@ -1,0 +1,103 @@
+---
+# Deployment — kickstart HTTP server
+# Serves the CentOS Stream 10 kickstart file over plain HTTP on port 8080.
+# The VM's Anaconda installer fetches this file during network boot.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kickstart-server
+  namespace: workshop-virt
+  labels:
+    app: kickstart-server
+    app.kubernetes.io/part-of: workshop-virt
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kickstart-server
+  template:
+    metadata:
+      labels:
+        app: kickstart-server
+    spec:
+      containers:
+        - name: httpd
+          image: quay.io/YOUR_QUAY_ORG/kickstart-server:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+              name: http
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /centos10-workshop.ks
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /centos10-workshop.ks
+              port: 8080
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: "25m"
+              memory: "32Mi"
+            limits:
+              cpu: "100m"
+              memory: "64Mi"
+      imagePullSecrets:
+        - name: quay-credentials
+---
+# Service — cluster-internal access to kickstart server
+apiVersion: v1
+kind: Service
+metadata:
+  name: kickstart-server
+  namespace: workshop-virt
+  labels:
+    app: kickstart-server
+spec:
+  selector:
+    app: kickstart-server
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
+  type: ClusterIP
+---
+# Route — exposes the kickstart server externally
+#
+# CRITICAL: insecureEdgeTerminationPolicy: Allow
+# This allows the Anaconda installer inside the VM to reach the
+# kickstart file via plain HTTP. Anaconda running inside the VM
+# may not have access to the cluster's CA certificate and will
+# fail TLS verification if forced to HTTPS.
+#
+# The Route provides BOTH:
+#   http://kickstart-server-workshop-virt.<cluster-domain>/centos10-workshop.ks
+#   https://kickstart-server-workshop-virt.<cluster-domain>/centos10-workshop.ks
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: kickstart-server
+  namespace: workshop-virt
+  labels:
+    app: kickstart-server
+  annotations:
+    # Reminder: use the http:// URL in the VM boot args, not https://
+    workshop.note: "Use http:// URL for kickstart — TLS causes anaconda issues"
+spec:
+  to:
+    kind: Service
+    name: kickstart-server
+    weight: 100
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    # Allow is the key — plain HTTP requests are passed through
+    insecureEdgeTerminationPolicy: Allow
+  wildcardPolicy: None

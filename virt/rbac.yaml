@@ -1,0 +1,23 @@
+---
+# Allow ArgoCD to manage the workshop-virt namespace
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: gitops-manage-virt
+  namespace: workshop-virt
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: admin
+subjects:
+  - kind: ServiceAccount
+    name: openshift-gitops-argocd-application-controller
+    namespace: openshift-gitops
+---
+# Allow the default SA in workshop-virt to pull from Quay
+# (needed for the kickstart-server Deployment)
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: default
+  namespace: workshop-virt

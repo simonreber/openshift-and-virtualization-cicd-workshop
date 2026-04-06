@@ -1,0 +1,76 @@
+---
+# VirtualMachine — centos-workshop (POST-INSTALL)
+#
+# Apply this manifest AFTER the OS installation is complete.
+# It removes the installation ISO and sets the disk as the only boot device.
+#
+# Apply with:
+#   oc apply -f virt/vm/virtualmachine-postinstall.yaml
+#
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  name: centos-workshop
+  namespace: workshop-virt
+  labels:
+    app: centos-workshop
+    app.kubernetes.io/part-of: workshop-virt
+  annotations:
+    workshop.note: "Post-install manifest — boots from disk only, no ISO"
+spec:
+  runStrategy: RerunOnFailure
+
+  # No dataVolumeTemplates needed — DataVolumes already exist from first apply
+  # (centos-workshop-disk is now populated with the installed OS)
+
+  template:
+    metadata:
+      labels:
+        kubevirt.io/domain: centos-workshop
+        app: centos-workshop
+    spec:
+      domain:
+        cpu:
+          cores: 2
+          sockets: 1
+          threads: 1
+        memory:
+          guest: 4Gi
+        machine:
+          type: q35
+        firmware:
+          bootloader:
+            bios:
+              useSerial: true
+        features:
+          acpi: {}
+          smm:
+            enabled: false
+        devices:
+          autoattachSerialConsole: true
+          autoattachGraphicsDevice: false
+          disks:
+            # Only the installed OS disk — no CDROM
+            - name: target-disk
+              bootOrder: 1
+              disk:
+                bus: virtio
+          interfaces:
+            - name: default
+              masquerade: {}
+              model: virtio
+        resources:
+          requests:
+            memory: 4Gi
+            cpu: "2"
+
+      networks:
+        - name: default
+          pod: {}
+
+      volumes:
+        - name: target-disk
+          dataVolume:
+            name: centos-workshop-disk
+
+      terminationGracePeriodSeconds: 180

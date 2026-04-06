@@ -1,0 +1,179 @@
+---
+# VirtualMachine — centos-workshop
+#
+# Boot flow:
+#   1. VM starts with a blank DataVolume (empty 20 GiB disk)
+#   2. BIOS boots from network (bootOrder: 1 on the masquerade NIC)
+#   3. DHCP assigns an IP; TFTP/PXE is provided by the virt-launcher pod
+#
+# IMPORTANT: OpenShift Virtualization's masquerade interface does NOT
+# provide a real PXE/TFTP server. We use a different approach:
+#
+#   We boot from the CentOS Stream 10 installer ISO (fetched via DataVolume
+#   from the mirror) and pass the kickstart URL via kernel arguments using
+#   the "sysprep" / cloudInitNoCloud workaround — but the cleanest approach
+#   for OpenShift Virt is to:
+#
+#   a) Create a DataVolume from the CentOS Stream 10 boot ISO
+#   b) Attach it as a CDROM (bootOrder: 1)
+#   c) Pass kernel args: inst.ks=http://... via the firmware/BIOS mechanism
+#
+# This file uses the ISO-as-CDROM + blank target disk approach, which is
+# the standard OpenShift Virtualization pattern for unattended OS installs.
+# The kickstart URL is injected via a ConfigMap/sysprep volume.
+#
+# RESULT: Anaconda boots from the ISO, fetches the kickstart from the
+# Route HTTP URL, and installs to /dev/vda (the blank DataVolume).
+# After install, the VM reboots from /dev/vda and the ISO is detached.
+#
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  name: centos-workshop
+  namespace: workshop-virt
+  labels:
+    app: centos-workshop
+    app.kubernetes.io/part-of: workshop-virt
+  annotations:
+    # After OS install completes and VM reboots, stop it and
+    # remove the cdrom volume + change boot order to disk only.
+    workshop.note: "After install: stop VM, remove cdrom disk, set bootOrder disk=1"
+spec:
+  # VM starts automatically when the DataVolume is ready
+  runStrategy: RerunOnFailure
+
+  # ── DataVolume templates ────────────────────────────────────────────────
+  dataVolumeTemplates:
+
+    # ── Target disk: blank 20 GiB — Anaconda installs CentOS here
+    - metadata:
+        name: centos-workshop-disk
+      spec:
+        storage:
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 20Gi
+          volumeMode: Filesystem
+        source:
+          blank: {}
+
+    # ── CentOS Stream 10 boot ISO — fetched from the official mirror
+    # CDI (Containerized Data Importer) downloads this in the background.
+    # The VM will not start until the download is complete.
+    - metadata:
+        name: centos-workshop-iso
+      spec:
+        storage:
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 12Gi
+          volumeMode: Filesystem
+        source:
+          http:
+            # CentOS Stream 10 boot ISO (x86_64)
+            # Check https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/iso/
+            # for the latest boot.iso filename and update the URL accordingly.
+            url: "https://mirror.stream.centos.org/10-stream/BaseOS/x86_64/iso/CentOS-Stream-10-latest-x86_64-boot.iso"
+
+  # ── VM instance template ────────────────────────────────────────────────
+  template:
+    metadata:
+      labels:
+        kubevirt.io/domain: centos-workshop
+        app: centos-workshop
+    spec:
+      domain:
+        # ── CPU
+        cpu:
+          cores: 2
+          sockets: 1
+          threads: 1
+
+        # ── Memory
+        memory:
+          guest: 4Gi
+
+        # ── Machine type
+        machine:
+          type: q35
+
+        # ── Firmware / BIOS
+        firmware:
+          bootloader:
+            bios:
+              useSerial: true
+
+        # ── Features
+        features:
+          acpi: {}
+          smm:
+            enabled: false    # BIOS mode, not UEFI
+
+        # ── Devices
+        devices:
+          # Serial console — useful for watching Anaconda installation
+          # Access with: virtctl console centos-workshop -n workshop-virt
+          autoattachSerialConsole: true
+          autoattachGraphicsDevice: false
+
+          disks:
+            # Boot ISO (CDROM) — boot order 1 during install
+            - name: installation-cdrom
+              bootOrder: 1
+              cdrom:
+                bus: sata
+                readonly: true
+
+            # Target disk — blank, Anaconda will partition and install here
+            # After install this becomes boot order 1
+            - name: target-disk
+              bootOrder: 2
+              disk:
+                bus: virtio
+
+          interfaces:
+            # Pod network via masquerade (NAT)
+            # The VM gets DHCP from the virt-launcher pod
+            - name: default
+              masquerade: {}
+              model: virtio
+              # Boot order for NIC is not set — we boot from ISO, not PXE
+              # If you want PXE, set bootOrder: 1 here and remove from cdrom
+
+        resources:
+          requests:
+            memory: 4Gi
+            cpu: "2"
+
+      networks:
+        - name: default
+          pod: {}
+
+      volumes:
+        # CentOS installer ISO
+        - name: installation-cdrom
+          dataVolume:
+            name: centos-workshop-iso
+
+        # Blank target disk
+        - name: target-disk
+          dataVolume:
+            name: centos-workshop-disk
+
+        # Kickstart configuration injected via sysprep/cloud-init
+        # The sysprep volume is mounted and used to pass the kickstart URL
+        # to Anaconda via kernel command line arguments.
+        # We use a ConfigMap-backed disk that contains an Anaconda answer file.
+        - name: kickstart-args
+          configMap:
+            name: centos-workshop-kickstart-args
+
+      # Wait for DataVolumes to be ready before starting
+      readinessGates: []
+
+      # Terminate gracefully
+      terminationGracePeriodSeconds: 180

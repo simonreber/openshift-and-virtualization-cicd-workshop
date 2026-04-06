@@ -24,6 +24,8 @@
     <div class="output-line"><span class="output-key">App</span><span class="output-sep">:</span><span class="output-val">Hugo → httpd → Quay.io → OpenShift</span></div>
     <div class="output-line"><span class="output-key">Envs</span><span class="output-sep">:</span><span class="output-val">workshop-dev · workshop-test · workshop-prod</span></div>
     <div class="output-line"><span class="output-key">Trigger</span><span class="output-sep">:</span><span class="output-val">git push → pipeline → image → sync</span></div>
+    <div class="output-line"><span class="output-key">Virt</span><span class="output-sep">:</span><span class="output-val">OpenShift Virtualization (KubeVirt) · CentOS Stream 10</span></div>
+    <div class="output-line"><span class="output-key">Install</span><span class="output-sep">:</span><span class="output-val">Kickstart via HTTP → Anaconda → GitOps VM</span></div>
   </div>
 </section>
 
@@ -87,6 +89,41 @@
       <div class="env-name">PROD</div>
       <div class="env-ns">workshop-prod</div>
       <div class="env-trigger"><code>git tag v1.0.0</code></div>
+    </div>
+  </div>
+</section>
+
+<section class="virt-section">
+  <h2 class="section-title"><span class="comment">##</span> OpenShift Virtualization</h2>
+  <div class="virt-flow">
+    <div class="virt-card">
+      <div class="virt-icon">📄</div>
+      <div class="virt-label">Kickstart File</div>
+      <div class="virt-sub">CentOS Stream 10<br>Unattended Install</div>
+    </div>
+    <div class="flow-arrow">──▶</div>
+    <div class="virt-card">
+      <div class="virt-icon">🌐</div>
+      <div class="virt-label">httpd Server</div>
+      <div class="virt-sub">Quay → OpenShift<br>HTTP Route</div>
+    </div>
+    <div class="flow-arrow">──▶</div>
+    <div class="virt-card">
+      <div class="virt-icon">💿</div>
+      <div class="virt-label">Boot ISO</div>
+      <div class="virt-sub">CDI DataVolume<br>from mirror</div>
+    </div>
+    <div class="flow-arrow">──▶</div>
+    <div class="virt-card">
+      <div class="virt-icon">🖥</div>
+      <div class="virt-label">VirtualMachine</div>
+      <div class="virt-sub">KubeVirt · QEMU/KVM<br>on OpenShift</div>
+    </div>
+    <div class="flow-arrow">──▶</div>
+    <div class="virt-card virt-highlight">
+      <div class="virt-icon">✅</div>
+      <div class="virt-label">Installed!</div>
+      <div class="virt-sub">ArgoCD managed<br>GitOps VM</div>
     </div>
   </div>
 </section>

@@ -1,0 +1,47 @@
+---
+# ArgoCD AppProject — workshop-virt
+# Scopes the virtualization applications to the workshop-virt namespace.
+# Allows KubeVirt CRDs (VirtualMachine, DataVolume) as well as standard resources.
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: workshop-virt
+  namespace: openshift-gitops
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  description: "Workshop — OpenShift Virtualization (KubeVirt)"
+
+  sourceRepos:
+    - "https://github.com/YOUR_GITHUB_ORG/YOUR_GITHUB_REPO"
+    - "https://github.com/YOUR_GITHUB_ORG/YOUR_GITHUB_REPO.git"
+
+  destinations:
+    - namespace: workshop-virt
+      server: https://kubernetes.default.svc
+
+  # Allow standard + KubeVirt / CDI / Multus namespace-scoped resources
+  namespaceResourceWhitelist:
+    - group: ""
+      kind: ConfigMap
+    - group: ""
+      kind: Service
+    - group: ""
+      kind: ServiceAccount
+    - group: "apps"
+      kind: Deployment
+    - group: "route.openshift.io"
+      kind: Route
+    - group: "kubevirt.io"
+      kind: VirtualMachine
+    - group: "kubevirt.io"
+      kind: VirtualMachineInstance
+    - group: "cdi.kubevirt.io"
+      kind: DataVolume
+    - group: "k8s.cni.cncf.io"
+      kind: NetworkAttachmentDefinition
+    - group: ""
+      kind: PersistentVolumeClaim
+
+  clusterResourceWhitelist: []
+  syncWindows: []

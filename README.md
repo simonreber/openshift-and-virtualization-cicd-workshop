@@ -1,4 +1,4 @@
-# 🚀 OpenShift Pipelines & GitOps Workshop - Work in Progress
+# 🚀 OpenShift Pipelines & GitOps Workshop
 
 > **A hands-on workshop demonstrating Tekton (OpenShift Pipelines) + Pipelines as Code + ArgoCD (OpenShift GitOps) on Red Hat OpenShift.**
 
@@ -150,7 +150,7 @@ done
 
 ### Step 4 — Configure GitHub Credentials (for PaC)
 
-Create a GitHub Personal Access Token (PAT). When using legacy PAT, select `repo` and `admin:repo_hook` scopes. When using the fine-grained tokens we need to apply `Contents`, `Commit statuses`, `Deployments` and `Webhooks` with `Read and Write` permissions set. Important, only apply it to the working repository to avoid exposing the scope to other non-related repositories.
+Create a GitHub Personal Access Token (PAT) with `repo` and `admin:repo_hook` scopes:
 
 ```bash
 oc create secret generic github-token \
@@ -336,11 +336,29 @@ echo "http://$(oc get route workshop-app -n workshop-prod -o jsonpath='{.spec.ho
 │           ├── deployment.yaml
 │           ├── service.yaml
 │           └── route.yaml
+├── virt/                        # OpenShift Virtualization manifests
+│   ├── namespace.yaml
+│   ├── rbac.yaml
+│   ├── kickstart-server.yaml    # Deployment + Service + Route
+│   ├── kickstart/
+│   │   ├── centos10-workshop.ks # CentOS Stream 10 kickstart file
+│   │   └── Dockerfile           # httpd container serving the KS file
+│   ├── vm/
+│   │   ├── virtualmachine.yaml          # VM (install phase)
+│   │   ├── virtualmachine-postinstall.yaml  # VM (post-install)
+│   │   ├── kickstart-configmap.yaml     # kickstart URL config
+│   │   └── network.yaml                 # SSH NodePort service
+│   └── argocd/
+│       ├── appproject.yaml
+│       └── applications/
+│           ├── kickstart-server.yaml
+│           └── centos-workshop-vm.yaml
 └── page/                        # Hugo site source
     ├── config.toml
     ├── content/
-    ├── themes/
-    └── static/
+    │   └── posts/               # Workshop modules 01-11 (Markdown)
+    ├── themes/terminal/         # Custom dark terminal theme
+    └── static/                  # CSS + JS
 ```
 
 ---
@@ -383,3 +401,77 @@ oc describe sa default -n workshop-dev
 - [OpenShift Pipelines](https://docs.openshift.com/container-platform/latest/cicd/pipelines/understanding-openshift-pipelines.html)
 - [OpenShift GitOps](https://docs.openshift.com/container-platform/latest/cicd/gitops/understanding-openshift-gitops.html)
 - [Hugo Documentation](https://gohugo.io/documentation/)
+
+---
+
+## 🖥️ Part 2 — OpenShift Virtualization
+
+> Prerequisite: Part 1 complete (Namespaces, Tekton, ArgoCD configured and working).
+
+### What's Added
+
+| Resource | Path | Description |
+|----------|------|-------------|
+| Kickstart file | `virt/kickstart/centos10-workshop.ks` | CentOS Stream 10 unattended install |
+| Kickstart Dockerfile | `virt/kickstart/Dockerfile` | httpd container serving the KS file |
+| Kickstart server | `virt/kickstart-server.yaml` | Deployment + Service + Route (HTTP) |
+| VirtualMachine | `virt/vm/virtualmachine.yaml` | KubeVirt VM booting from ISO + blank disk |
+| Post-install VM | `virt/vm/virtualmachine-postinstall.yaml` | VM spec after OS install (disk only) |
+| ArgoCD AppProject | `virt/argocd/appproject.yaml` | Scopes virt apps to workshop-virt |
+| ArgoCD Applications | `virt/argocd/applications/` | kickstart-server + centos-workshop-vm |
+
+### Virt Quick Start
+
+```bash
+# 1 — Namespace + RBAC
+oc apply -f virt/namespace.yaml && oc apply -f virt/rbac.yaml
+
+# 2 — Build & push kickstart server image
+cd virt/kickstart
+podman build -t quay.io/${QUAY_ORG}/kickstart-server:latest .
+podman push quay.io/${QUAY_ORG}/kickstart-server:latest && cd ../..
+
+# 3 — Deploy kickstart server via ArgoCD
+sed -i "s|YOUR_QUAY_ORG|${QUAY_ORG}|g" virt/kickstart-server.yaml
+for f in virt/argocd/appproject.yaml virt/argocd/applications/*.yaml; do
+  sed -i -e "s|YOUR_GITHUB_ORG|${GITHUB_ORG}|g" \
+         -e "s|YOUR_GITHUB_REPO|${GITHUB_REPO}|g" "$f"
+done
+oc apply -f virt/argocd/appproject.yaml
+oc apply -f virt/argocd/applications/kickstart-server.yaml
+
+# 4 — Verify HTTP kickstart access
+curl -f http://$(oc get route kickstart-server -n workshop-virt \
+  -o jsonpath='{.spec.host}')/centos10-workshop.ks | head -3
+
+# 5 — Set cluster domain in ConfigMap + deploy VM
+CLUSTER_DOMAIN=$(oc get ingress.config.openshift.io cluster -o jsonpath='{.spec.domain}')
+sed -i "s|YOUR_CLUSTER_DOMAIN|${CLUSTER_DOMAIN}|g" virt/vm/kickstart-configmap.yaml
+git add . && git commit -m "chore: set cluster domain" && git push origin main
+oc apply -f virt/argocd/applications/centos-workshop-vm.yaml
+
+# 6 — Watch DataVolume import (ISO ~800 MB)
+oc get datavolumes -n workshop-virt --watch
+
+# 7 — Boot VM, pass kickstart at Anaconda prompt
+virtctl console centos-workshop -n workshop-virt
+# At boot menu → Tab → append:
+# inst.ks=http://kickstart-server-workshop-virt.apps.${CLUSTER_DOMAIN}/centos10-workshop.ks
+
+# 8 — After install completes, switch to post-install manifest
+cp virt/vm/virtualmachine-postinstall.yaml virt/vm/virtualmachine.yaml
+git add virt/vm/virtualmachine.yaml
+git commit -m "virt: post-install boot from disk"
+git push origin main
+
+# 9 — Connect
+virtctl ssh root@centos-workshop -n workshop-virt  # password: workshop123!
+```
+
+### Virt References
+
+- [OpenShift Virtualization Docs](https://docs.openshift.com/container-platform/latest/virt/about_virt/about-virt.html)
+- [KubeVirt User Guide](https://kubevirt.io/user-guide/)
+- [CDI DataVolume Docs](https://github.com/kubevirt/containerized-data-importer/blob/main/doc/datavolumes.md)
+- [CentOS Stream 10 Mirror](https://mirror.stream.centos.org/10-stream/)
+- [Kickstart Syntax Reference](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/9/html/performing_an_advanced_rhel_9_installation/kickstart-commands-and-options-reference_installing-rhel-as-an-experienced-user)

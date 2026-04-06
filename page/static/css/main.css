@@ -348,7 +348,49 @@ main.container { padding-top: 2.5rem; padding-bottom: 4rem; }
   flex-shrink: 0;
 }
 
-/* ── Post cards ─────────────────────────────────────────────────────────── */
+/* ── Virt flow ───────────────────────────────────────────────────────────── */
+.virt-section { margin-bottom: 3.5rem; }
+
+.virt-flow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  overflow-x: auto;
+}
+
+.virt-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elevated);
+  min-width: 105px;
+  text-align: center;
+  transition: all var(--transition);
+  cursor: default;
+}
+.virt-card:hover {
+  border-color: var(--purple);
+  background: rgba(188,140,255,0.08);
+  transform: translateY(-2px);
+}
+.virt-highlight {
+  border-color: var(--cyan);
+  background: rgba(57,211,83,0.08);
+}
+.virt-highlight:hover { border-color: var(--cyan); }
+
+.virt-icon  { font-size: 1.4rem; }
+.virt-label { font-family: var(--font-mono); font-size: 0.78rem; font-weight: 700; color: var(--text); }
+.virt-sub   { font-size: 0.66rem; color: var(--text-muted); line-height: 1.4; }
 .posts-section { margin-bottom: 3rem; }
 
 .posts-grid {

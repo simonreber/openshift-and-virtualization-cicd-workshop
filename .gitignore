@@ -1,0 +1,26 @@
+# Hugo build output
+page/public/
+page/resources/
+page/.hugo_build.lock
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Secrets — NEVER commit real secrets
+# (these are template files only — secrets go in OpenShift, not Git)
+*.env
+.envrc
+secrets/
+
+# Terraform / misc
+*.tfstate
+*.tfstate.backup
+.terraform/

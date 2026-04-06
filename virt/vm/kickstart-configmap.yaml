@@ -1,0 +1,60 @@
+---
+# ConfigMap: kickstart kernel args
+#
+# This ConfigMap is referenced as a volume in the VirtualMachine.
+# It is mounted as a disk containing a file that Anaconda reads to
+# determine where to find the kickstart file.
+#
+# The actual mechanism: we create a small iso9660 image (or use a
+# sysprep-style approach) containing a file that tells GRUB/Anaconda
+# the kickstart URL. In practice the simplest approach for OpenShift
+# Virtualization is to use the "autoattach" approach with a custom
+# kernel command line — which requires patching the ISO's GRUB config.
+#
+# PRACTICAL APPROACH (used in the workshop):
+# We do NOT rely on ConfigMap-injected kernel args (that requires GRUB
+# modification). Instead, we document the manual approach:
+#
+# When the VM boots from the ISO, at the Anaconda boot menu:
+#   - Press TAB (BIOS) or 'e' (EFI) to edit the boot entry
+#   - Append:  inst.ks=http://KS_SERVER_URL/centos10-workshop.ks
+#   - Press Enter/Ctrl+X to boot
+#
+# For FULL automation without manual intervention, use the
+# AutoInstall DataVolume approach documented in Module 09.
+#
+# This ConfigMap stores the kickstart URL so operators can copy/paste it.
+#
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: centos-workshop-kickstart-args
+  namespace: workshop-virt
+  labels:
+    app.kubernetes.io/part-of: workshop-virt
+data:
+  # The kickstart server URL (Route) — set during setup
+  # Replace <cluster-domain> with your actual cluster domain
+  # Get it with: oc get route kickstart-server -n workshop-virt -o jsonpath='{.spec.host}'
+  kickstart-url: "http://kickstart-server-workshop-virt.apps.YOUR_CLUSTER_DOMAIN/centos10-workshop.ks"
+
+  # Full kernel argument string to append at the Anaconda boot prompt
+  kernel-args: "inst.ks=http://kickstart-server-workshop-virt.apps.YOUR_CLUSTER_DOMAIN/centos10-workshop.ks console=tty0 console=ttyS0,115200n8"
+
+  # Instructions displayed during workshop
+  instructions: |
+    To pass the kickstart to Anaconda:
+
+    1. Open the VM console:
+       virtctl console centos-workshop -n workshop-virt
+
+    2. At the CentOS Stream 10 boot menu, select
+       "Install CentOS Stream 10" and press TAB
+
+    3. At the boot: prompt, APPEND (do not replace):
+       inst.ks=http://kickstart-server-workshop-virt.apps.YOUR_CLUSTER_DOMAIN/centos10-workshop.ks
+
+    4. Press ENTER — Anaconda will fetch and apply the kickstart automatically
+
+    5. Watch the installation via:
+       virtctl console centos-workshop -n workshop-virt
