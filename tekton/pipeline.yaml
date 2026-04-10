@@ -92,8 +92,14 @@ spec:
     # ── Task 3: Build & push container image ────────────────────────────────
     - name: build-push-image
       taskRef:
-        kind: Task
-        name: buildah-build-push
+        resolver: cluster
+        params:
+          - name: kind
+            value: task
+          - name: name
+            value: buildah
+          - name: namespace
+            value: openshift-pipelines
       runAfter:
         - build-hugo
       params:
@@ -109,24 +115,24 @@ spec:
         - name: dockerconfig
           workspace: quay-credentials
 
-    # ── Task 4: Update Helm values → triggers ArgoCD ────────────────────────
-    - name: update-image-tag
-      taskRef:
-        kind: Task
-        name: update-helm-values
-      runAfter:
-        - build-push-image
-      params:
-        - name: git-url
-          value: $(params.github-repo-url)
-        - name: git-branch
-          value: $(params.helm-values-file-branch)
-        - name: values-file
-          value: $(params.helm-values-file)
-        - name: image-tag
-          value: $(params.image-tag)
-      workspaces:
-        - name: source
-          workspace: shared-workspace
-        - name: github-token
-          workspace: github-token
+#    # ── Task 4: Update Helm values → triggers ArgoCD ────────────────────────
+#    - name: update-image-tag
+#      taskRef:
+#        kind: Task
+#        name: update-helm-values
+#      runAfter:
+#        - build-push-image
+#      params:
+#        - name: git-url
+#          value: $(params.github-repo-url)
+#        - name: git-branch
+#          value: $(params.helm-values-file-branch)
+#        - name: values-file
+#          value: $(params.helm-values-file)
+#        - name: image-tag
+#          value: $(params.image-tag)
+#      workspaces:
+#        - name: source
+#          workspace: shared-workspace
+#        - name: github-token
+#          workspace: github-token
