@@ -2,9 +2,11 @@ baseURL = "/"
 languageCode = "en-us"
 title = "OpenShift CI/CD Workshop"
 theme = "terminal"
-paginate = 10
 enableRobotsTXT = true
 enableEmoji = true
+
+[pagination]
+  pagerSize = 10
 
 [params]
   author = "Workshop Team"
