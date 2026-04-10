@@ -22,7 +22,7 @@ spec:
     spec:
       containers:
         - name: httpd
-          image: quay.io/YOUR_QUAY_ORG/kickstart-server:latest
+          image: quay.io/rhn_support_sreber/kickstart-server:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 8080

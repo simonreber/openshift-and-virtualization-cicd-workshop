@@ -4,7 +4,7 @@
 replicaCount: 1
 
 image:
-  repository: quay.io/YOUR_QUAY_ORG/workshop-app
+  repository: quay.io/rhn_support_sreber/workshop-app
   pullPolicy: IfNotPresent
   # tag is overwritten by Tekton pipeline via update-helm-values task
   tag: "latest"

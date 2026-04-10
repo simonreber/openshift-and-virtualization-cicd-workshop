@@ -8,7 +8,7 @@
 #       tekton/pipelineruns/run-prod.yaml | oc create -f -
 #
 # Variables substituted by setup.sh:
-#   YOUR_GITHUB_ORG, YOUR_GITHUB_REPO, YOUR_QUAY_ORG
+#   simonreber, openshift-and-virtualization-cicd-workshop, rhn_support_sreber
 #
 apiVersion: tekton.dev/v1
 kind: PipelineRun
@@ -24,19 +24,19 @@ spec:
 
   params:
     - name: git-url
-      value: "https://github.com/YOUR_GITHUB_ORG/YOUR_GITHUB_REPO"
+      value: "https://github.com/simonreber/openshift-and-virtualization-cicd-workshop"
     - name: git-revision
       # Replace with your release tag name, e.g. v1.0.0
       value: "v1.0.0"
     - name: image-registry
       value: "quay.io"
     - name: image-repo
-      value: "YOUR_QUAY_ORG/workshop-app"
+      value: "rhn_support_sreber/workshop-app"
     - name: image-tag
       # Use the release tag as image tag
       value: "v1.0.0"
     - name: github-repo-url
-      value: "https://github.com/YOUR_GITHUB_ORG/YOUR_GITHUB_REPO"
+      value: "https://github.com/simonreber/openshift-and-virtualization-cicd-workshop"
     - name: helm-values-file
       value: "helm/workshop-app/values-prod.yaml"
     - name: helm-values-file-branch

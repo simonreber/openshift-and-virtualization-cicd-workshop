@@ -36,10 +36,10 @@ data:
   # The kickstart server URL (Route) — set during setup
   # Replace <cluster-domain> with your actual cluster domain
   # Get it with: oc get route kickstart-server -n workshop-virt -o jsonpath='{.spec.host}'
-  kickstart-url: "http://kickstart-server-workshop-virt.apps.YOUR_CLUSTER_DOMAIN/centos10-workshop.ks"
+  kickstart-url: "http://kickstart-server-workshop-virt.apps.apps.cluster-z957m.dynamic.redhatworkshops.io/centos10-workshop.ks"
 
   # Full kernel argument string to append at the Anaconda boot prompt
-  kernel-args: "inst.ks=http://kickstart-server-workshop-virt.apps.YOUR_CLUSTER_DOMAIN/centos10-workshop.ks console=tty0 console=ttyS0,115200n8"
+  kernel-args: "inst.ks=http://kickstart-server-workshop-virt.apps.apps.cluster-z957m.dynamic.redhatworkshops.io/centos10-workshop.ks console=tty0 console=ttyS0,115200n8"
 
   # Instructions displayed during workshop
   instructions: |
@@ -52,7 +52,7 @@ data:
        "Install CentOS Stream 10" and press TAB
 
     3. At the boot: prompt, APPEND (do not replace):
-       inst.ks=http://kickstart-server-workshop-virt.apps.YOUR_CLUSTER_DOMAIN/centos10-workshop.ks
+       inst.ks=http://kickstart-server-workshop-virt.apps.apps.cluster-z957m.dynamic.redhatworkshops.io/centos10-workshop.ks
 
     4. Press ENTER — Anaconda will fetch and apply the kickstart automatically
 

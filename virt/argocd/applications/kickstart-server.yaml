@@ -15,7 +15,7 @@ spec:
   project: workshop-virt
 
   source:
-    repoURL: "https://github.com/YOUR_GITHUB_ORG/YOUR_GITHUB_REPO"
+    repoURL: "https://github.com/simonreber/openshift-and-virtualization-cicd-workshop"
     targetRevision: main
     # Plain directory — ArgoCD applies all YAML files in this path
     path: virt

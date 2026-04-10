@@ -13,8 +13,8 @@ spec:
   description: "Workshop — OpenShift Virtualization (KubeVirt)"
 
   sourceRepos:
-    - "https://github.com/YOUR_GITHUB_ORG/YOUR_GITHUB_REPO"
-    - "https://github.com/YOUR_GITHUB_ORG/YOUR_GITHUB_REPO.git"
+    - "https://github.com/simonreber/openshift-and-virtualization-cicd-workshop"
+    - "https://github.com/simonreber/openshift-and-virtualization-cicd-workshop.git"
 
   destinations:
     - namespace: workshop-virt
